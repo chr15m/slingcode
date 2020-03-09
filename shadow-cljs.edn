@@ -1,0 +1,9 @@
+{:source-paths ["src"]
+ :dependencies [[reagent "0.8.1"]
+                [alandipert/storage-atom "2.0.1"]]
+ :dev-http {8000 "public/"}
+ :builds {:dev {:target :browser
+                :output-dir "public/js"
+                :asset-path "js"
+                :modules {:main {:init-fn slingcode.main/main!}}
+                :devtools {:after-load slingcode.main/reload!}}}}
