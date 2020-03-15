@@ -1,13 +1,6 @@
 (ns slingcode.main
   (:require [alandipert.storage-atom :refer [local-storage]]
             [reagent.core :as r]
-            ["muicss/lib/react/appbar" :as Appbar]
-            ["muicss/lib/react/tabs" :as Tabs]
-            ["muicss/lib/react/tab" :as Tab]
-            ["muicss/lib/react/button" :as Button]
-            ["muicss/lib/react/divider" :as Divider]
-            ["muicss/lib/react/container" :as Container]
-            ["muicss/lib/react/panel" :as Panel]
             [slingcode.icons :refer [component-icon]]))
 
 ; ***** functions ***** ;
@@ -20,33 +13,37 @@
 
 (defn component-main [state]
   [:div
-   [:> Appbar [:div {:class "mui--text-center mui--appbar-height mui--appbar-line-height mui--align-middle"} [:p "Slingcode apps"]]]
-   [:> Container
-    [:> Tabs {:class "mui--text-center"}
-     [:> Tab {:value "All" :label "All"}]
-     [:> Tab {:value "Examples" :label "Examples"}]
-     [:> Tab {:value "Templates" :label "Templates"}]]]
-   [:> Divider]
+   [:section#header
+    [:div#logo
+     [:img {:src "logo.svg"}]
+     [:span "Slingcode"]
+     ;[:nav "ipsum"]
+     [:svg {:width "100%" :height "60px"}
+      [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
+      [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
 
-   [:> Container {:class "mui-container-fluid"}
-    [:> Panel {:class "mui-row"}
-     [:div {:class "mui-col-md-1"}
-      #_ [:img {:width 64 :height 64 :class "mui-col-md-1"}]
-      [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
-     [:div {:class "mui-col-md"}
-      [:h3 "Example Mithril.js app"]
-      [:div.containers {:class "mui--pull-right"}
-       [:> Button {:variant "fab" :class "mui-btn--raised"} [component-icon :code]]
-       [:> Button {:variant "fab" :class "mui-btn--raised"} [component-icon :link-out]]
-       [:> Button {:variant "fab"} [component-icon :share]]]
-      [:p "An simple Mithril.js app."]
-      [:p.tags [:span "example"]]]]
+   [:section#apps
+    [:section#tags
+     [:ul
+      [:li.active [:a {:href "#all"} "All"]]
+      [:li [:a {:href "#examples"} "Examples"]]
+      [:li [:a {:href "#templates"} "Templates"]]]]
 
-    (for [x (range 100)]
-      [:> Panel
-       [:p "Hello"]])]
+    (for [x (range 10)]
+      [:div.app
+       [:div.columns
+        [:div.column
+         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
+        [:div.column
+         [:p.title "Example Mithril.js app"]
+         [:p "A simple Mithril app demonstrating ipsum lorem blah blah."]
+         [:p.tags [:span "example"] [:span "demo"] [:span "mithril"]]]]
+       [:div.actions
+        [:button [component-icon :code]]
+        [:button [component-icon :share]]
+        [:button [component-icon :link-out]]]])]
 
-   [:> Container [:> Button {:color "primary" :variant "fab"} "+"]]])
+   [:button#add-app "+"]])
 
 ; ***** init ***** ;
 
