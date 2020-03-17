@@ -29,18 +29,18 @@
       [:li [:a {:href "#examples"} "Examples"]]
       [:li [:a {:href "#templates"} "Templates"]]]]
 
-    [:div.app
+    [:div.app {:on-click (fn [ev] (let [w (js/window.open)]
+                                    (-> w .-document (.write "<p>hello</p>"))))}
        [:div.columns
         [:div.column
          [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
         [:div.column
-         [:p.title "Example Mithril.js app"]
+         [:p.title "Example Mithril.js app" [:span {:class "link-out"} [component-icon :link-out]]]
          [:p "A simple Mithril app implementing a todo list with a declarative user interface."]
          [:p.tags [:span "example"] [:span "declarative"] [:span "mithril"]]]]
        [:div.actions
         [:button [component-icon :code]]
-        [:button [component-icon :share]]
-        [:button [component-icon :link-out]]]]
+        [:button [component-icon :share]]]]
 
     (for [x (range 10)]
       [:div.app
