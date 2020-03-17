@@ -1,62 +1,71 @@
 (ns slingcode.main
-  (:require [alandipert.storage-atom :refer [local-storage]]
-            [reagent.core :as r]
-            [slingcode.icons :refer [component-icon]]))
+  (:require 
+    [alandipert.storage-atom :refer [local-storage]]
+    [reagent.core :as r]
+    [shadow.resource :as rc]
+    [slingcode.icons :refer [component-icon]]))
+
+(def boilerplate (rc/inline "slingcode/boilerplate.html"))
+
+; ***** data ***** ;
+
+(defn make-app []
+  {:created (js/Date.)
+   :src boilerplate
+   :tags ["My apps"]})
 
 ; ***** functions ***** ;
 
 
 ; ***** events ***** ;
 
+(defn add-app! [apps ev]
+  (swap! apps assoc (str (random-uuid)) (make-app)))
+
+(defn open-app [app ev]
+  (let [src (app :src)
+        w (js/window.open)]
+    (-> w .-document (.write src))))
+
+(defn edit-app [app ev]
+  
+  )
 
 ; ***** views ***** ;
 
 (defn component-main [state]
-  [:div
-   [:section#header
-    [:div#logo
-     [:img {:src "logo.svg"}]
-     [:span "Slingcode"]
-     ;[:nav "ipsum"]
-     [:svg {:width "100%" :height "60px"}
-      [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
-      [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
+  (let [apps (r/cursor state [:apps])]
+    [:div
+     [:section#header
+      [:div#logo
+       [:img {:src "logo.svg"}]
+       [:span "Slingcode"]
+       ;[:nav "ipsum"]
+       [:svg {:width "100%" :height "60px"}
+        [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
+        [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
 
-   [:section#apps
-    [:section#tags
-     [:ul
-      [:li.active [:a {:href "#all"} "All"]]
-      [:li [:a {:href "#examples"} "Examples"]]
-      [:li [:a {:href "#templates"} "Templates"]]]]
+     [:section#apps
+      [:section#tags
+       [:ul
+        [:li.active [:a {:href "#all"} "All"]]
+        [:li [:a {:href "#examples"} "Examples"]]
+        [:li [:a {:href "#templates"} "Templates"]]]]
 
-    [:div.app {:on-click (fn [ev] (let [w (js/window.open)]
-                                    (-> w .-document (.write "<p>hello</p>"))))}
-       [:div.columns
-        [:div.column
-         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
-        [:div.column
-         [:p.title "Example Mithril.js app" [:span {:class "link-out"} [component-icon :link-out]]]
-         [:p "A simple Mithril app implementing a todo list with a declarative user interface."]
-         [:p.tags [:span "example"] [:span "declarative"] [:span "mithril"]]]]
-       [:div.actions
-        [:button [component-icon :code]]
-        [:button [component-icon :share]]]]
+      (for [[id app] @apps]
+        [:div.app {:on-click (partial open-app app)}
+         [:div.columns
+          [:div.column
+           [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
+          [:div.column
+           [:p.title (or (app :title) "Untitled app") [:span {:class "link-out"} [component-icon :link-out]]]
+           [:p (app :description)]
+           [:p.tags (for [t (app :tags)] [:span t])]]]
+         [:div.actions
+          [:button {:on-click (partial edit-app app)} [component-icon :code]]
+          [:button [component-icon :share]]]])]
 
-    (for [x (range 10)]
-      [:div.app
-       [:div.columns
-        [:div.column
-         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
-        [:div.column
-         [:p.title "Example Preact app"]
-         [:p "A lightweight scientific calcultor built with Preact, another declarative library."]
-         [:p.tags [:span "example"] [:span "declarative"] [:span "react"] [:span "preact"]]]]
-       [:div.actions
-        [:button [component-icon :code]]
-        [:button [component-icon :share]]
-        [:button [component-icon :link-out]]]])]
-
-   [:button#add-app "+"]])
+     [:button#add-app {:on-click (partial add-app! apps)} "+"]]))
 
 ; ***** init ***** ;
 
@@ -64,6 +73,7 @@
   (println "reload!")
   (let [state (local-storage (r/atom {}) :slingcode-state)]
     (js/console.log "Current state:" (clj->js @state))
+    ;(reset! state nil)
     (r/render [component-main state] (js/document.getElementById "app"))))
 
 (defn main! []
