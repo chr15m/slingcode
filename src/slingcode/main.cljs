@@ -29,15 +29,28 @@
       [:li [:a {:href "#examples"} "Examples"]]
       [:li [:a {:href "#templates"} "Templates"]]]]
 
+    [:div.app
+       [:div.columns
+        [:div.column
+         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
+        [:div.column
+         [:p.title "Example Mithril.js app"]
+         [:p "A simple Mithril app implementing a todo list with a declarative user interface."]
+         [:p.tags [:span "example"] [:span "declarative"] [:span "mithril"]]]]
+       [:div.actions
+        [:button [component-icon :code]]
+        [:button [component-icon :share]]
+        [:button [component-icon :link-out]]]]
+
     (for [x (range 10)]
       [:div.app
        [:div.columns
         [:div.column
          [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
         [:div.column
-         [:p.title "Example Mithril.js app"]
-         [:p "A simple Mithril app demonstrating ipsum lorem blah blah."]
-         [:p.tags [:span "example"] [:span "demo"] [:span "mithril"]]]]
+         [:p.title "Example Preact app"]
+         [:p "A lightweight scientific calcultor built with Preact, another declarative library."]
+         [:p.tags [:span "example"] [:span "declarative"] [:span "react"] [:span "preact"]]]]
        [:div.actions
         [:button [component-icon :code]]
         [:button [component-icon :share]]
