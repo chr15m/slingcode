@@ -1,0 +1,213 @@
+/* #31D584 */
+/* #E5B413 */
+/* #50A1EA */
+/* #C64438 */
+
+body, html {
+  margin: 0px;
+  padding: 0px;
+  background-color: #232a25;
+  color: #999;
+  font-family: "Courier New", monospace;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+#loading {
+  text-align: center;
+  margin-top: 5em;
+  animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker { 50% { opacity: 0; } }
+
+h3 {
+  font-size: 32px;
+}
+
+h2 {
+  font-size 48px;
+}
+
+h1 {
+  font-size: 96px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+
+section#header p {
+  margin-left: 1em;
+}
+
+div#logo img {
+  position: absolute;
+  top: 24px;
+  left: 22px;
+}
+
+div#logo span {
+  position: absolute;
+  top: 22px;
+  left: 160px;
+}
+
+#header svg {
+  stroke: #777;
+  position: absolute;
+  top: 60px;
+}
+
+nav {
+  float: right;
+  margin-right: 1em;
+  margin-top: 1em;
+}
+
+/*** apps ***/
+
+/* tags */
+
+#tags {
+  border-bottom: 2px solid #444;
+  margin-bottom: 1em;
+}
+
+#tags ul {
+  display: inline-block;
+  overflow: auto;
+  margin: 0px;
+  padding: 0.25em;
+}
+
+#tags ul li {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+
+#tags ul li a {
+  cursor: pointer;
+  color: #999;
+  text-decoration: none;
+}
+
+#tags ul li a:hover {
+  color: #bbb;
+}
+
+#tags ul li.active a {
+  color: #eee;
+}
+
+section#apps {
+  width: 100%;
+  max-width: 800px;
+  margin: 7em auto;
+  padding: 1em;
+}
+
+/*** individual app ***/
+
+div.app {
+  border-bottom: 2px solid #444;
+  padding: 1.5em 0px;
+  cursor: pointer;
+}
+
+div.app button {
+  border: 0px;
+  border-radius: 3px;
+  background-color: #aaa;
+  width: 128px;
+}
+
+div.app button:hover {
+  background-color: #eee;
+}
+
+div.app button svg {
+  fill: #232323;
+  margin-top: 6px;
+}
+
+div.app button {
+  fill: #eee;
+}
+
+div.app button + button {
+  margin-left: 4px;
+}
+
+div.app .link-out svg {
+  fill: #bbb;
+  margin-bottom: -0.5em;
+  width: 24px;
+  margin-left: 0.5em;
+}
+
+#apps .columns {
+  display: flex;
+}
+
+#apps .column {
+  display: inline-block;
+  padding: 1em;
+  vertical-align: top;
+}
+
+#apps .column > * {
+  padding-top: 0px;
+  margin-top: 0px;
+  margin-bottom: 0.5em;
+}
+
+#apps .actions {
+  text-align: right;
+  margin-bottom: 0.5em;
+}
+
+#apps p.title {
+  color: #bbb;
+}
+
+#apps p {
+  color: #666;
+}
+
+#apps .tags span {
+  background-color: #666;
+  padding: 0.125em 0.5em;
+  border-radius: 4px;
+  color: #232323;
+}
+
+#apps .tags span + span {
+  margin-left: 0.25em;
+}
+
+/*** add button ***/
+
+#add-app {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  font-size: 32px;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  border-radius: 2em;
+  width: 64px;
+  height: 64px;
+  border: 0px;
+  background-color: #aaa;
+  color: #232a25;
+  border: 4px solid #232a25;
+}
+
+#add-app:hover {
+  background-color: #eee;
+}
