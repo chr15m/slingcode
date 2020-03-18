@@ -3,7 +3,8 @@
     [alandipert.storage-atom :refer [local-storage]]
     [reagent.core :as r]
     [shadow.resource :as rc]
-    [slingcode.icons :refer [component-icon]]))
+    [slingcode.icons :refer [component-icon]]
+    ["codemirror" :as CodeMirror]))
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 
@@ -31,6 +32,9 @@
   
   )
 
+(defn init-cm [app dom-node]
+  (let [cm (CodeMirror/fromTextArea dom-node #js {})]))
+
 ; ***** views ***** ;
 
 (defn component-main [state]
@@ -53,17 +57,19 @@
         [:li [:a {:href "#templates"} "Templates"]]]]
 
       (for [[id app] @apps]
-        [:div.app {:on-click (partial open-app app)}
-         [:div.columns
+        [:div.app {:key id}
+         [:div.columns {:on-click (partial open-app app)}
           [:div.column
            [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
           [:div.column
            [:p.title (or (app :title) "Untitled app") [:span {:class "link-out"} [component-icon :link-out]]]
            [:p (app :description)]
-           [:p.tags (for [t (app :tags)] [:span t])]]]
+           [:p.tags (for [t (app :tags)] [:span {:key t} t])]]]
          [:div.actions
           [:button {:on-click (partial edit-app app)} [component-icon :code]]
-          [:button [component-icon :share]]]])]
+          [:button [component-icon :share]]]
+         [:div [:textarea {:ref (partial init-cm app) :defaultValue (app :src)}]]])]
+
 
      [:button#add-app {:on-click (partial add-app! apps)} "+"]]))
 
