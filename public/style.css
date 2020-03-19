@@ -104,6 +104,10 @@ nav {
   color: #eee;
 }
 
+section#editor {
+  margin: 7em auto;
+}
+
 section#apps {
   width: 100%;
   max-width: 800px;
@@ -210,4 +214,20 @@ div.app .link-out svg {
 
 #add-app:hover {
   background-color: #eee;
+}
+
+/*** editor ***/
+
+div.editor > div {
+  height: 100%;
+}
+
+.CodeMirror {
+  background: none !important;
+  font-family: "Courier New", monospace;
+  font-size: 24px;
+}
+
+.CodeMirror-gutters {
+  background: rgba(255,255,255,0.1) !important;
 }
