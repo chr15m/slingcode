@@ -10,7 +10,7 @@
     ["codemirror/mode/css/css" :as css]
     ["codemirror/mode/javascript/javascript" :as javascript]))
 
-(js/console.log htmlmixed xml css javascript)
+(js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 
@@ -23,23 +23,27 @@
 
 ; ***** functions ***** ;
 
-
 ; ***** events ***** ;
 
 (defn add-app! [apps ev]
   (swap! apps assoc (str (random-uuid)) (make-app)))
 
-(defn open-app [app ev]
-  (let [src (app :src)
-        w (js/window.open)]
-    (-> w .-document (.write src))))
+(defn open-app [state id ev]
+  (let [src (or (-> @state :apps (get id) :src) "")
+        w (js/window.open (js/window.URL.createObjectURL (js/Blob. #js [src] #js {:type "text/html"})))]
+    ;(-> w .-document (.write src))
+    (swap! state assoc-in [:windows id] w)))
 
 (defn edit-app [state id ev]
   (swap! state assoc :mode :edit :app id))
 
 (defn save-file [state id cm]
-  (let [content (.getValue cm)]
+  (let [content (.getValue cm)
+        window (-> @state :windows (get id))]
     (js/console.log "New content:" content)
+    (when window
+      (-> window .-document .clear)
+      (-> window .-document (.write content)))
     (swap! state #(-> %
                       (dissoc :mode :app)
                       (assoc-in [:apps id :src] content)))))
@@ -54,7 +58,7 @@
                   :value (or (-> @state :apps (get id) :src) "")
                   :theme "erlang-dark"
                   :autoCloseBrackets true
-                  :mode htmlmixed})]))
+                  :mode "htmlmixed"})]))
 
 ; ***** views ***** ;
 
@@ -82,7 +86,7 @@
 
         (for [[id app] @apps]
           [:div.app {:key id}
-           [:div.columns {:on-click (partial open-app app)}
+           [:div.columns {:on-click (partial open-app state id)}
             [:div.column
              [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
             [:div.column
