@@ -13,6 +13,7 @@
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
 (defonce ui-state (atom {}))
+(defonce dom-parser (js/DOMParser.))
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 
@@ -25,7 +26,7 @@
 
 ; ***** functions ***** ;
 
-(defn attach-unload-event [ui id win]
+(defn attach-unload-event! [ui id win]
   (.addEventListener win "load"
                      (fn [ev]
                        (print "window load" id)
@@ -44,12 +45,11 @@
     (when doc
       (.open doc)
       (.write doc content)
-      (attach-unload-event ui id win)
+      (attach-unload-event! ui id win)
       (.close doc))
     (swap! state #(assoc-in % [:apps id :src] content))))
 
-(defn create-editor [dom-node src]
-  (js/console.log "create-editor")
+(defn create-editor! [dom-node src]
   (let [cm (CodeMirror
              dom-node
              #js {:lineNumbers true
@@ -66,11 +66,11 @@
   (let [src (-> @state :apps (get id) :src)]
     (when (and dom-node (not (aget dom-node "CM")))
       (swap! ui assoc
-             :editor (aset dom-node "CM" (create-editor dom-node src))))))
+             :editor (aset dom-node "CM" (create-editor! dom-node src))))))
 
 (defn launch-window! [ui id src]
   (let [w (js/window.open (js/window.URL.createObjectURL (js/Blob. #js [src] #js {:type "text/html"})))]
-    (attach-unload-event ui id w)
+    (attach-unload-event! ui id w)
     w))
 
 ; ***** events ***** ;
@@ -79,7 +79,7 @@
   (.preventDefault ev)
   (swap! apps assoc (str (random-uuid)) (make-app)))
 
-(defn open-app [{:keys [state ui] :as app-data} id ev]
+(defn open-app! [{:keys [state ui] :as app-data} id ev]
   (.preventDefault ev)
   (let [src (or (-> @state :apps (get id) :src) "")
         w (-> @ui :windows (get id))
@@ -87,15 +87,15 @@
     (.focus w)
     (swap! ui assoc-in [:windows id] w)))
 
-(defn edit-app [{:keys [state ui] :as app-data} id ev]
+(defn edit-app! [{:keys [state ui] :as app-data} id ev]
   (.preventDefault ev)
   (swap! state assoc :mode :edit :app id))
 
-(defn close-editor [state ev]
+(defn close-editor! [state ev]
   (.preventDefault ev)
   (swap! state dissoc :mode :app))
 
-(defn save-file [{:keys [state ui] :as app-data} id ev]
+(defn save-file! [{:keys [state ui] :as app-data} id ev]
   (.preventDefault ev)
   (save-handler! app-data id (@ui :editor)))
 
@@ -104,10 +104,26 @@
 (defn component-editor [{:keys [state ui] :as app-data}]
   [:section#editor
    [:ul#file-menu
-    [:li [:a {:href "#" :on-click (partial close-editor state)} "close"]]
-    [:li [:a {:href "#" :on-click (partial save-file app-data (@state :app))} "save"]]
-    [:li [:a {:href "#" :on-click (partial open-app app-data (@state :app))} "open"]]]
+    [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
+    [:li [:a {:href "#" :on-click (partial save-file! app-data (@state :app))} "save"]]
+    [:li [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"]]]
    [:div.editor {:ref (partial init-cm! app-data (@state :app))}]])
+
+(defn component-list-app [app-data id app]
+  (let [dom (.parseFromString dom-parser (app :src) "text/html")
+        title (.querySelector dom "title")
+        description (.querySelector dom "meta[name='description']")]
+    [:div.app {:key id}
+     [:div.columns {:on-click (partial open-app! app-data id)}
+      [:div.column
+       [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
+      [:div.column
+       [:p.title (if title (.-textContent title) "Untitled app") [:span {:class "link-out"} [component-icon :link-out]]]
+       [:p (if description (.getAttribute description "content") "")]
+       [:p.tags (for [t (app :tags)] [:span {:key t} t])]]]
+     [:div.actions
+      [:button {:on-click (partial edit-app! app-data id)} [component-icon :code]]
+      [:button [component-icon :share]]]]))
 
 (defn component-main [{:keys [state ui] :as app-data}]
   (let [apps (r/cursor state [:apps])
@@ -132,17 +148,7 @@
           [:li [:a {:href "#templates"} "Templates"]]]]
 
         (for [[id app] @apps]
-          [:div.app {:key id}
-           [:div.columns {:on-click (partial open-app app-data id)}
-            [:div.column
-             [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]]
-            [:div.column
-             [:p.title (or (app :title) "Untitled app") [:span {:class "link-out"} [component-icon :link-out]]]
-             [:p (app :description)]
-             [:p.tags (for [t (app :tags)] [:span {:key t} t])]]]
-           [:div.actions
-            [:button {:on-click (partial edit-app app-data id)} [component-icon :code]]
-            [:button [component-icon :share]]]])
+          [component-list-app app-data id app])
         [:button#add-app {:on-click (partial add-app! apps)} "+"]])]))
 
 ; ***** init ***** ;
