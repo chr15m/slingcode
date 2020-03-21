@@ -218,6 +218,22 @@ div.app .link-out svg {
 
 /*** editor ***/
 
+section#editor #file-menu {
+  margin-top: -1em;
+  margin-left: 0px;
+  padding: 0px;
+}
+
+section#editor #file-menu li {
+  display: inline-block;
+  margin-left: 1em;
+  color: #eee;
+}
+
+section#editor #file-menu li a {
+  color: #aaa;
+}
+
 div.editor > div {
   height: 100%;
 }
