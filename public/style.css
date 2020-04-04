@@ -173,6 +173,8 @@ div.app .link-out svg {
 #apps .actions {
   text-align: right;
   margin-bottom: 0.5em;
+  float: right;
+  margin-top: -1em;
 }
 
 #apps p.title {
