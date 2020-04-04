@@ -1,6 +1,7 @@
 {:source-paths ["src"]
  :dependencies [[reagent "0.8.1"]
-                [alandipert/storage-atom "2.0.1"]]
+                [alandipert/storage-atom "2.0.1"]
+                [org.clojure/core.async "1.1.587"]]
  :dev-http {8000 "public/"}
  :builds {:dev {:target :browser
                 :output-dir "public/js"

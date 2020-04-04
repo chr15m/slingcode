@@ -14,6 +14,9 @@ build/%: public/%
 watch:
 	npx shadow-cljs watch dev
 
+repl:
+	npx shadow-cljs cljs-repl dev
+
 clean:
 	rm -rf build/*
 	lein clean
