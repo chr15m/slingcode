@@ -4,6 +4,7 @@
     [reagent.core :as r]
     [shadow.resource :as rc]
     [slingcode.icons :refer [component-icon]]
+    ["localforage" :as localforage]
     ["codemirror" :as CodeMirror]
     ["codemirror/mode/htmlmixed/htmlmixed" :as htmlmixed]
     ["codemirror/mode/xml/xml" :as xml]
@@ -21,8 +22,7 @@
 
 (defn make-app []
   {:created (js/Date.)
-   :src boilerplate
-   :tags ["My apps"]})
+   :src boilerplate})
 
 ; ***** functions ***** ;
 
@@ -69,6 +69,7 @@
              :editor (aset dom-node "CM" (create-editor! dom-node src))))))
 
 (defn launch-window! [ui id src]
+  ; TODO: store the blob and write to it then to window.location.reload instead
   (let [w (js/window.open (js/window.URL.createObjectURL (js/Blob. #js [src] #js {:type "text/html"})))]
     (attach-unload-event! ui id w)
     w))
@@ -156,7 +157,20 @@
 (defn reload! []
   (println "reload!")
   (let [app-data {:state (local-storage (r/atom {}) :slingcode-state) :ui ui-state}
+        store (.createInstance localforage #js {:name "slingcode-apps"})
         {:keys [state ui]} app-data]
+
+    (doseq [[id app] (@state :apps)]
+      (.getItem store (str "app/" id)
+                (fn [err f]
+                  (js/console.log "loaded" err f))))
+
+    (doseq [[id app] (@state :apps)]
+         (->
+           (.setItem store (str "app/" id)
+                     #js [(js/File. #js [(app :src)] "index.html" #js {:type "text/html" :lastModified (.getTime (js/Date. (app :created)))})])
+           (.then (fn [f] (js/console.log "stored" f)))))
+
     (js/console.log "Current state:" (clj->js @state @ui))
     ;(reset! state {})
     (r/render [component-main app-data] (js/document.getElementById "app"))))
