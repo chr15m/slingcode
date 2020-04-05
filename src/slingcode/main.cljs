@@ -6,6 +6,7 @@
     [reagent.core :as r]
     [shadow.resource :as rc]
     [slingcode.icons :refer [component-icon]]
+    ["jszip" :as JSZip]
     ["localforage" :as localforage]
     ["codemirror" :as CodeMirror]
     ["codemirror/mode/htmlmixed/htmlmixed" :as htmlmixed]
@@ -30,16 +31,20 @@
   (let [id (.pop (.split store-key "/"))]
     (when (.match id uuid-re) [id store-key])))
 
-(defn get-file-contents [file]
+(defn get-file-contents [file result-type]
   "Wrapper hack to support older Chrome."
   (if file
     (if (aget file "text")
-      (.text file)
+      (if (= result-type :array-buffer)
+        (.arrayBuffer file)
+        (.text file))
       (js/Promise. (fn [res rej]
                      (let [fr (js/FileReader.)]
                        (aset fr "onload" (fn [done] (res (.-result fr))))
-                       (.readAsText fr file)))))
-    (js/Promise. (fn [res rej] (res "")))))
+                       (if (= result-type :array-buffer)
+                         (.readAsArrayBuffer fr file)
+                         (.readAsText fr file))))))
+    (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer.) ""))))))
 
 (defn get-apps-data [store]
   (go
@@ -49,7 +54,7 @@
                              (go
                                (let [files (<p! (.getItem store store-key))
                                      index-html (get files 0)
-                                     src (<p! (get-file-contents index-html))
+                                     src (<p! (get-file-contents index-html :text))
                                      dom (.parseFromString dom-parser src "text/html")
                                      title (.querySelector dom "title")
                                      title (if title (.-textContent title) "Untitled app")
@@ -67,6 +72,28 @@
           result-chans (when app-chans (async/map merge app-chans))
           result (if result-chans (dissoc (<! result-chans) :skip) {})]
       result)))
+
+(defn make-slug [n]
+  (-> n
+      (.toLowerCase)
+      (.replace (js/RegExp. "[^\\w ]+" "g") "")
+      (.replace (js/RegExp. " +" "g") "-")))
+
+(defn make-zip [store id title]
+  (print id title)
+  (go
+    (let [slug (make-slug title)
+          zip (JSZip.)
+          folder (.folder zip slug)
+          files (<p! (.getItem store (str "app/" id)))
+          _ (js/console.log files)
+          blob-promises (.map files (fn [f] (get-file-contents f :array-buffer)))
+          blobs (<p! (js/Promise.all blob-promises))]
+      (doseq [i (range (count files))]
+        (let [file (nth files i)
+              blob (nth blobs i)]
+          (.file folder (.-name file) blob)))
+      (<p! (.generateAsync zip #js {:type "blob"})))))
 
 ; ***** functions ***** ;
 
@@ -133,7 +160,7 @@
 (defn init-cm! [{:keys [state ui] :as app-data} id dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id))
   (go
-    (let [src (<p! (-> @state :files first get-file-contents))]
+    (let [src (<p! (-> @state :files first (get-file-contents :text)))]
       (when (and dom-node (not (aget dom-node "CM")))
         (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))
 
@@ -185,6 +212,12 @@
       (<p! (.removeItem store (str "app/" id)))
       (swap! state assoc :apps (<! (get-apps-data store))))))
 
+(defn download-zip! [{:keys [state ui store] :as app-data} id title ev]
+  (.preventDefault ev)
+  (go
+    (let [zipfile (<! (make-zip store id title))]
+      (js/window.open (js/window.URL.createObjectURL zipfile)))))
+
 ; ***** views ***** ;
 
 (defn component-editor [{:keys [state ui] :as app-data}]
@@ -209,7 +242,8 @@
    [:div.columns
     [:div.column
      [:div [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]] 
-     [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
+     [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
+     [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
     [:div.column {:on-click (partial open-app! app-data id)}
      [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]
      [:p (app :description)]

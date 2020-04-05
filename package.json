@@ -2,6 +2,7 @@
   "dependencies": {
     "codemirror": "^5.51.0",
     "create-react-class": "^15.6.3",
+    "jszip": "^3.3.0",
     "localforage": "^1.7.3",
     "niceware": "^2.0.0",
     "react": "^16.12.0",
