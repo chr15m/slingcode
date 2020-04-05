@@ -23,9 +23,8 @@
 
 ; ***** data ***** ;
 
-(defn make-app []
-  {:created (js/Date.)
-   :src boilerplate})
+(defn make-boilerplate-files []
+  [(js/File. #js [boilerplate] "index.html" #js {:type "text/html"})])
 
 (defn extract-id [store-key]
   (let [id (.pop (.split store-key "/"))]
@@ -39,7 +38,6 @@
                              (go
                                (let [files (<p! (.getItem store store-key))
                                      index-html (get files 0)
-                                     _ (js/console.log "index.html" index-html)
                                      src (<p! (.text index-html)) ;TODO: wrap this with FileReader.readAsText() for old systems
                                      dom (.parseFromString dom-parser src "text/html")
                                      title (.querySelector dom "title")
@@ -132,14 +130,6 @@
 
 ; ***** events ***** ;
 
-(defn add-app! [{:keys [state ui store] :as app-data} ev]
-  (.preventDefault ev)
-  (go
-    (let [files [(js/File. #js [boilerplate] "index.html" #js {:type "text/html"})]]
-      (<p! (.setItem store (str "app/" (random-uuid)) (clj->js files)))
-      (js/console.log "made one" files)
-      (swap! state assoc :apps (<! (get-apps-data store))))))
-
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
   (go
@@ -148,10 +138,10 @@
       (.focus w)
       (swap! ui assoc-in [:windows id] w))))
 
-(defn edit-app! [{:keys [state ui store] :as app-data} id ev]
+(defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
   (.preventDefault ev)
   (go
-    (let [files (<p! (.getItem store (str "app/" id)))]
+    (let [files (or files (<p! (.getItem store (str "app/" id))))]
       (swap! state assoc :mode :edit :app id :files files))))
 
 (defn close-editor! [state ev]
@@ -182,7 +172,7 @@
    [:div.columns
     [:div.column
      [:div [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]] 
-     [:button {:on-click (partial edit-app! app-data id)} [component-icon :code]]]
+     [:button {:on-click (partial edit-app! app-data id nil)} [component-icon :code]]]
     [:div.column {:on-click (partial open-app! app-data id)}
      [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]
      [:p (app :description)]
@@ -215,7 +205,7 @@
         (for [[id app] @apps]
           [:div {:key id} [component-list-app app-data id app]])
 
-        [:button#add-app {:on-click (partial add-app! app-data)} "+"]])]))
+        [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
 
 ; ***** init ***** ;
 
