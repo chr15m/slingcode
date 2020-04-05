@@ -196,10 +196,10 @@
     [:li (if (-> @ui :windows (get (@state :app)))
            [:span "(opened)"]
            [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"])]]
-
    [:ul#files
     (doall (for [f (@state :files)]
-             [:li {:key (.-name f)} (.-name f)]))]
+             [:li.active {:key (.-name f)} (.-name f)]))
+    [:li [:a {:href "#" :on-click (fn [ev] (.preventDefault ev) (js/alert "Coming soon."))} "+"]]]
    [:div
     (doall (for [f (@state :files)]
              [:div.editor {:key (.-name f) :ref (partial init-cm! app-data (@state :app))}]))]])

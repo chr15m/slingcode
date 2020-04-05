@@ -221,9 +221,10 @@ div.app .link-out svg {
 /*** editor ***/
 
 section#editor #file-menu {
-  margin-top: -1em;
-  margin-left: 0px;
   padding: 0px;
+  margin-top: -3.5em;
+  margin-left: 136px;
+  position: relative;
 }
 
 section#editor #file-menu li {
@@ -233,6 +234,32 @@ section#editor #file-menu li {
 }
 
 section#editor #file-menu li a {
+  color: #aaa;
+}
+
+section#editor ul#files {
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+  list-style-type: none;
+  border-bottom: 2px solid #999;
+}
+
+section#editor ul#files li {
+  border: 2px solid #999;
+  border-bottom: none;
+  padding: 0.25em 1em;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  display: inline-block;
+  margin-bottom: -2px;
+}
+
+section#editor ul#files li.active {
+  background-color: #232a25;
+}
+
+section#editor ul#files li a {
+  text-decoration: none;
   color: #aaa;
 }
 
