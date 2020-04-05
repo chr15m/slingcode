@@ -70,6 +70,12 @@
 
 ; ***** functions ***** ;
 
+(defn adblock-detect! [ui el]
+  (when el
+    (js/console.log (.-offsetHeight el))
+    (if (= (.-offsetHeight el) 0)
+      (swap! ui assoc :adblocked true))))
+
 (defn attach-unload-event! [ui id win which]
   (.addEventListener win "unload"
                      (fn [ev]
@@ -133,13 +139,15 @@
         (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))
 
 (defn launch-window! [ui id store]
-  (go
-    (let [files (<p! (.getItem store (str "app/" id)))
-          file (get files 0)
-          url (js/window.URL.createObjectURL file)
-          win (js/window.open url)]
-      (attach-load-event! ui id win)
-      win)))
+  (if (@ui :adblocked)
+    (go (js/alert "Sorry, Adblock won't let us open the window.\nTurn it off for this site to use Slingcode.") nil)
+    (go
+      (let [files (<p! (.getItem store (str "app/" id)))
+            file (get files 0)
+            url (js/window.URL.createObjectURL file)
+            win (js/window.open url)]
+        (attach-load-event! ui id win)
+        win))))
 
 ; ***** events ***** ;
 
@@ -149,11 +157,12 @@
     (let [w (-> @ui :windows (get id))
           w (if (not (and w (.-closed w))) w)
           w (or w (<! (launch-window! ui id store)))]
-      (js/console.log "focusing on" (.-closed w) w)
-      (.blur w)
-      (.blur js/window)
-      (js/setTimeout #(.focus w) 0)
-      (swap! ui assoc-in [:windows id] w))))
+      (js/console.log "focusing on" w)
+      (when w
+        (.blur w)
+        (.blur js/window)
+        (js/setTimeout #(.focus w) 0)
+        (swap! ui assoc-in [:windows id] w)))))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
   (.preventDefault ev)
@@ -201,6 +210,8 @@
   (let [apps (r/cursor state [:apps])
         mode (@state :mode)]
     [:div
+     [:div#detect-adblock {:class "ads ad adsbox doubleclick ad-placement carbon-ads" :style {:height "1px"} :ref #(js/setTimeout (partial adblock-detect! ui %) 1)} " "]
+
      [:section#header
       [:div#logo
        [:img {:src "logo.svg"}]
