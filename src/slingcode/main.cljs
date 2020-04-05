@@ -30,6 +30,17 @@
   (let [id (.pop (.split store-key "/"))]
     (when (.match id uuid-re) [id store-key])))
 
+(defn get-file-contents [file]
+  "Wrapper hack to support older Chrome."
+  (if file
+    (if (aget file "text")
+      (.text file)
+      (js/Promise. (fn [res rej]
+                     (let [fr (js/FileReader.)]
+                       (aset fr "onload" (fn [done] (res (.-result fr))))
+                       (.readAsText fr file)))))
+    (js/Promise. (fn [res rej] (res "")))))
+
 (defn get-apps-data [store]
   (go
     (let [store-keys (remove nil? (map extract-id (<p! (.keys store))))
@@ -38,7 +49,7 @@
                              (go
                                (let [files (<p! (.getItem store store-key))
                                      index-html (get files 0)
-                                     src (<p! (.text index-html)) ;TODO: wrap this with FileReader.readAsText() for old systems
+                                     src (<p! (get-file-contents index-html))
                                      dom (.parseFromString dom-parser src "text/html")
                                      title (.querySelector dom "title")
                                      title (if title (.-textContent title) "Untitled app")
@@ -67,7 +78,11 @@
                        (js/console.log "unload window closed?" (aget win "closed"))
                        (js/console.log "unload window skipunload?" (aget win "skipunload"))
                        (if (nil? (aget win "skipunload"))
-                         (swap! ui update-in [:windows] dissoc id)))))
+                         (swap! ui update-in [:windows] dissoc id)
+                         (do
+                           (js/setTimeout (fn []
+                                            (attach-unload-event! ui id win)
+                                            (aset win "skipunload" nil)) 100))))))
 
 (defn attach-load-event! [ui id win]
   (.addEventListener win "load"
@@ -90,10 +105,6 @@
         ;(.addEventListener win "load" (fn [ev] (print "load catch A")))
         (-> win .-location (.replace (js/window.URL.createObjectURL (get files 0))))
         (print "window after setting location")
-        ; TODO: ugh this hack - find some other way to re-bind this
-        (js/setTimeout (fn []
-                         (attach-load-event! ui id win)
-                         (aset win "skipunload" nil)) 10)
         ;(.addEventListener win "load" (fn [ev] (print "load catch B")))
         ;(js/setTimeout #(.addEventListener win "load" (fn [ev] (print "load catch D"))) 3)
         ;(.addEventListener (.-document win) "DOMContentLoaded" (fn [ev] (print "dom content loaded")))
@@ -117,16 +128,18 @@
 (defn init-cm! [{:keys [state ui] :as app-data} id dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id))
   (go
-    (let [src (<p! (-> @state :files first .text))]
+    (let [src (<p! (-> @state :files first get-file-contents))]
       (when (and dom-node (not (aget dom-node "CM")))
         (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))
 
 (defn launch-window! [ui id store]
   (go
-    (let [files (<p! (.getItem store (str "app/" id)))]
-      (let [w (js/window.open (js/window.URL.createObjectURL (get files 0)))]
-        (attach-load-event! ui id w)
-        w))))
+    (let [files (<p! (.getItem store (str "app/" id)))
+          file (get files 0)
+          url (js/window.URL.createObjectURL file)
+          win (js/window.open url)]
+      (attach-load-event! ui id win)
+      win)))
 
 ; ***** events ***** ;
 
@@ -134,8 +147,12 @@
   (.preventDefault ev)
   (go
     (let [w (-> @ui :windows (get id))
+          w (if (not (and w (.-closed w))) w)
           w (or w (<! (launch-window! ui id store)))]
-      (.focus w)
+      (js/console.log "focusing on" (.-closed w) w)
+      (.blur w)
+      (.blur js/window)
+      (js/setTimeout #(.focus w) 0)
       (swap! ui assoc-in [:windows id] w))))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
@@ -161,11 +178,11 @@
     [:li [:a {:href "#" :on-click (partial save-file! app-data (@state :app))} "save"]]
     [:li [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"]]]
    [:ul#files
-    (for [f (@state :files)]
-      [:li {:key (.-name f)} (.-name f)])]
+    (doall (for [f (@state :files)]
+             [:li {:key (.-name f)} (.-name f)]))]
    [:div
-    (for [f (@state :files)]
-      [:div.editor {:key (.-name f) :ref (partial init-cm! app-data (@state :app))}])]])
+    (doall (for [f (@state :files)]
+             [:div.editor {:key (.-name f) :ref (partial init-cm! app-data (@state :app))}]))]])
 
 (defn component-list-app [app-data id app]
   [:div.app
@@ -176,7 +193,7 @@
     [:div.column {:on-click (partial open-app! app-data id)}
      [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]
      [:p (app :description)]
-     [:p.tags (for [t (app :tags)] [:span {:key t} t])]]]
+     [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]
    ; [:div.actions [:button [component-icon :share]]]
    ])
 
