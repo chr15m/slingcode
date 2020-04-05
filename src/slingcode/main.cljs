@@ -15,7 +15,7 @@
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
-(defonce ui-state (atom {}))
+(defonce ui-state (r/atom {}))
 (defonce dom-parser (js/DOMParser.))
 (def uuid-re (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
 
@@ -72,7 +72,6 @@
 
 (defn adblock-detect! [ui el]
   (when el
-    (js/console.log (.-offsetHeight el))
     (if (= (.-offsetHeight el) 0)
       (swap! ui assoc :adblocked true))))
 
@@ -185,7 +184,10 @@
    [:ul#file-menu
     [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
     [:li [:a {:href "#" :on-click (partial save-file! app-data (@state :app))} "save"]]
-    [:li [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"]]]
+    [:li (if (-> @ui :windows (get (@state :app)))
+           [:span "(opened)"]
+           [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"])]]
+
    [:ul#files
     (doall (for [f (@state :files)]
              [:li {:key (.-name f)} (.-name f)]))]
