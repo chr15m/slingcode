@@ -177,6 +177,14 @@
   (.preventDefault ev)
   (save-handler! app-data id (@ui :editor)))
 
+(defn delete-file! [{:keys [state ui store] :as app-data} id ev]
+  (.preventDefault ev)
+  (when (js/confirm "Are you sure you want to delete this app?")
+    (close-editor! state ev)
+    (go
+      (<p! (.removeItem store (str "app/" id)))
+      (swap! state assoc :apps (<! (get-apps-data store))))))
+
 ; ***** views ***** ;
 
 (defn component-editor [{:keys [state ui] :as app-data}]
@@ -184,6 +192,7 @@
    [:ul#file-menu
     [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
     [:li [:a {:href "#" :on-click (partial save-file! app-data (@state :app))} "save"]]
+    [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data (@state :app))} "delete"]]
     [:li (if (-> @ui :windows (get (@state :app)))
            [:span "(opened)"]
            [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"])]]

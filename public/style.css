@@ -249,3 +249,8 @@ div.editor > div {
 .CodeMirror-gutters {
   background: rgba(255,255,255,0.1) !important;
 }
+
+.color-warn {
+  color: #C64438 !important;
+}
+
