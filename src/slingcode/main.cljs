@@ -209,7 +209,7 @@
    [:div.columns
     [:div.column
      [:div [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]] 
-     [:button {:on-click (partial edit-app! app-data id nil)} [component-icon :code]]]
+     [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
     [:div.column {:on-click (partial open-app! app-data id)}
      [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]
      [:p (app :description)]
