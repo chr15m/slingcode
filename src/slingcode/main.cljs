@@ -80,13 +80,11 @@
       (.replace (js/RegExp. " +" "g") "-")))
 
 (defn make-zip [store id title]
-  (print id title)
   (go
     (let [slug (make-slug title)
           zip (JSZip.)
           folder (.folder zip slug)
           files (<p! (.getItem store (str "app/" id)))
-          _ (js/console.log files)
           blob-promises (.map files (fn [f] (get-file-contents f :array-buffer)))
           blobs (<p! (js/Promise.all blob-promises))]
       (doseq [i (range (count files))]
