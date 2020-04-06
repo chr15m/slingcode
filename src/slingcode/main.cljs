@@ -21,6 +21,7 @@
 (def uuid-re (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
+(def logo (rc/inline "slingcode/logo.svg"))
 
 ; ***** data ***** ;
 
@@ -257,7 +258,7 @@
 
      [:section#header
       [:div#logo
-       [:img {:src "logo.svg"}]
+       [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
        [:span "Slingcode"]
        ;[:nav "ipsum"]
        [:svg {:width "100%" :height "60px"}
