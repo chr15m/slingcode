@@ -5,11 +5,15 @@ BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
-slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt
-	$(BOOTLEG) src/slingcode-bootleg.clj > $@
+slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css
+	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
+	npx minify build/slingcode-compiled.html > $@
 
 build/logo-b64-href.txt: build/logo.png
 	echo "data:image/png;base64,"`base64 $< -w0` > $@
+
+build/style.min.css: build/style.css
+	npx minify $< > $@
 
 build/js/main.js: $(shell find src) package.json shadow-cljs.edn
 	npx shadow-cljs release app

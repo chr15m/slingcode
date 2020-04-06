@@ -1,5 +1,5 @@
 (let [template (html "../build/index.html")
-      css (slurp "../build/style.css")
+      css (slurp "../build/style.min.css")
       logo (slurp "../build/logo-b64-href.txt")
       js (slurp "../build/js/main.js")]
   (-> template
