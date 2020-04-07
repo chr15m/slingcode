@@ -177,8 +177,13 @@ div.app .link-out svg {
   margin-top: -1em;
 }
 
+#apps a.title {
+  color: #eee;
+  text-decoration: none;
+}
+
 #apps p.title {
-  color: #bbb;
+  color: #eee;
 }
 
 #apps p {

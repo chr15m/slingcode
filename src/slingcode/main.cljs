@@ -67,7 +67,8 @@
                                           {:created (.-lastModified index-html)
                                            :title title
                                            :description description
-                                           :tags (js->clj tags)}}]
+                                           :tags (js->clj tags)
+                                           :files files}}]
                                  app)))
                            store-keys))
           result-chans (when app-chans (async/map merge app-chans))
@@ -163,31 +164,32 @@
       (when (and dom-node (not (aget dom-node "CM")))
         (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))
 
-(defn launch-window! [ui id store]
-  (if (@ui :adblocked)
-    (go (js/alert "Sorry, Adblock won't let us open the window.\nTurn it off for this site to use Slingcode.") nil)
-    (go
-      (let [files (<p! (.getItem store (str "app/" id)))
-            file (get files 0)
-            url (js/window.URL.createObjectURL file)
-            win (js/window.open url)]
-        (attach-load-event! ui id win)
-        win))))
+(defn launch-window! [ui id files]
+  (let [file (get files 0)
+        url (js/window.URL.createObjectURL file)
+        win (js/window.open url (str "window-" id))]
+    (attach-load-event! ui id win)
+    win))
 
 ; ***** events ***** ;
 
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
-  (go
-    (let [w (-> @ui :windows (get id))
-          w (if (not (and w (.-closed w))) w)
-          w (or w (<! (launch-window! ui id store)))]
-      (js/console.log "focusing on" w)
-      (when w
-        (.blur w)
-        (.blur js/window)
-        (js/setTimeout #(.focus w) 0)
-        (swap! ui assoc-in [:windows id] w)))))
+  (let [files (-> @state :apps (get id) :files)
+        w (-> @ui :windows (get id))
+        w (if (not (and w (.-closed w))) w)
+        w (or w (launch-window! ui id files))]
+    (js/console.log "focusing on" w)
+    (when w
+      ;(.blur w)
+      ;(.blur js/window)
+      (.focus w)
+      ;(js/setTimeout #(.focus w) 0)
+      (swap! ui assoc-in [:windows id] w))
+    ; let the user know the window was blocked from opening
+    (js/setTimeout
+      (fn [] (when (aget w "closed") (js/alert "We couldn't open the app window.\nSometimes ad-blockers mistakenly do this.\nTry turning disabling your ad-blocker\nfor this site and refreshing.")))
+      250)))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
   (.preventDefault ev)
@@ -243,8 +245,11 @@
      [:div [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]] 
      [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
      [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
-    [:div.column {:on-click (partial open-app! app-data id)}
-     [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]
+    [:div.column
+     [:a.title {:href (js/window.URL.createObjectURL (get (app :files) 0))
+          :on-click (partial open-app! app-data id)
+          :target (str "window-" id)}
+      [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
      [:p (app :description)]
      [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]
    ; [:div.actions [:button [component-icon :share]]]
