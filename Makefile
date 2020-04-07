@@ -5,7 +5,7 @@ BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
-slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css
+slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
 
@@ -35,11 +35,14 @@ $(BOOTLEG):
 	tar -zxvf $(BOOTLEGTAR) && mv bootleg $(BOOTLEG)
 	rm $(BOOTLEGTAR)
 
+src/slingcode/revision.txt:
+	git rev-parse HEAD | cut -b -16 > $@
+
 # dev targets
 
 .PHONY: watch clean
 
-watch:
+watch: src/slingcode/revision.txt
 	npx shadow-cljs watch app 
 
 repl:

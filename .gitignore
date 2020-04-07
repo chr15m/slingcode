@@ -4,3 +4,4 @@ node_modules
 public/js
 build
 bin/bootleg-*
+src/slingcode/revision.txt

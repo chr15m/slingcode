@@ -22,6 +22,7 @@
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 (def logo (rc/inline "slingcode/logo.svg"))
+(def revision (rc/inline "slingcode/revision.txt"))
 
 ; ***** data ***** ;
 
@@ -222,7 +223,7 @@
 ; ***** views ***** ;
 
 (defn component-editor [{:keys [state ui] :as app-data}]
-  [:section#editor
+  [:section#editor.screen
    [:ul#file-menu
     [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
     [:li [:a {:href "#" :on-click (partial save-file! app-data (@state :app))} "save"]]
@@ -255,34 +256,46 @@
    ; [:div.actions [:button [component-icon :share]]]
    ])
 
+(defn component-about [state]
+  [:section#about.screen
+   [:p.title "Slingcode"]
+   [:p "Personal computing platform."]
+   [:p "Copyright Chris McCormick, 2020."]
+   [:ul
+    [:li [:a {:href "https://twitter.com/mccrmx"} "@mccrmx"]]
+    [:li [:a {:href "https://mccormick.cx"} "https://mccormick.cx/"]]]
+   [:p "Git revno: " revision]
+   [:button {:on-click #(swap! state dissoc :mode)} "Ok"]])
+
 (defn component-main [{:keys [state ui] :as app-data}]
   (let [apps (r/cursor state [:apps])
         mode (@state :mode)]
     [:div
-     [:div#detect-adblock {:class "ads ad adsbox doubleclick ad-placement carbon-ads" :style {:height "1px"} :ref #(js/setTimeout (partial adblock-detect! ui %) 1)} " "]
+     ;[:div#detect-adblock {:class "ads ad adsbox doubleclick ad-placement carbon-ads" :style {:height "1px"} :ref #(js/setTimeout (partial adblock-detect! ui %) 1)} " "]
 
      [:section#header
       [:div#logo
        [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
        [:span "Slingcode"]
-       ;[:nav "ipsum"]
+       [:nav [:a {:href "#" :on-click #(swap! state assoc :mode :about)} "About"]]
        [:svg {:width "100%" :height "60px"}
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
 
-     (if (= mode :edit)
-       [component-editor app-data]
-       [:section#apps
-        [:section#tags
-         [:ul
-          [:li.active [:a {:href "#all"} "All"]]
-          [:li [:a {:href "#examples"} "Examples"]]
-          [:li [:a {:href "#templates"} "Templates"]]]]
+     (case mode
+       :about [component-about state]
+       :edit [component-editor app-data]
+       nil [:section#apps.screen
+              [:section#tags
+               [:ul
+                [:li.active [:a {:href "#all"} "All"]]
+                [:li [:a {:href "#examples"} "Examples"]]
+                [:li [:a {:href "#templates"} "Templates"]]]]
 
-        (for [[id app] @apps]
-          [:div {:key id} [component-list-app app-data id app]])
+              (for [[id app] @apps]
+                [:div {:key id} [component-list-app app-data id app]])
 
-        [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
+              [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
 
 ; ***** init ***** ;
 

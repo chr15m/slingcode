@@ -37,6 +37,15 @@ h1 {
   box-sizing: border-box;
 }
 
+a {
+  text-decoration: none;
+  color: #aaa;
+}
+
+a:hover {
+  color: #eee;
+}
+
 button {
   cursor: pointer;
 }
@@ -64,9 +73,13 @@ div#logo span {
 }
 
 nav {
-  float: right;
-  margin-right: 1em;
-  margin-top: 1em;
+  position: absolute;
+  top: 1em;
+  right: 1em;
+}
+
+.title {
+  color: #eee;
 }
 
 /*** apps ***/
@@ -104,14 +117,19 @@ nav {
   color: #eee;
 }
 
-section#editor {
+section.screen {
   margin: 7em auto;
 }
 
 section#apps {
   width: 100%;
   max-width: 800px;
-  margin: 7em auto;
+  padding: 1em;
+}
+
+section#about {
+  width: 100%;
+  max-width: 800px;
   padding: 1em;
 }
 
@@ -123,14 +141,19 @@ div.app {
   cursor: pointer;
 }
 
-div.app button {
+button {
   border: 0px;
   border-radius: 3px;
   background-color: #aaa;
   width: 128px;
+  font-size: 24px;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  color: #232323;
+  height: 48px;
 }
 
-div.app button:hover {
+button:hover {
   background-color: #eee;
 }
 
@@ -203,7 +226,7 @@ div.app .link-out svg {
 
 /*** add button ***/
 
-#add-app {
+button#add-app {
   position: fixed;
   bottom: 32px;
   right: 32px;
