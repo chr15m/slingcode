@@ -15,7 +15,7 @@
    version="1.1"
    inkscape:version="0.48.4 r9939"
    sodipodi:docname="logo.svg"
-   inkscape:export-filename="logo.png"
+   inkscape:export-filename="../../public/logo.png"
    inkscape:export-xdpi="180"
    inkscape:export-ydpi="180">
   <defs
@@ -27,9 +27,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="8"
-     inkscape:cx="39.390154"
-     inkscape:cy="25.442305"
+     inkscape:zoom="4"
+     inkscape:cx="157.5592"
+     inkscape:cy="43.0602"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -43,10 +43,11 @@
     <inkscape:grid
        type="xygrid"
        id="grid3801"
-       empspacing="5"
+       empspacing="4"
        visible="true"
        enabled="true"
-       snapvisiblegridlinesonly="true" />
+       snapvisiblegridlinesonly="true"
+       dotted="false" />
   </sodipodi:namedview>
   <metadata
      id="metadata7">
@@ -56,7 +57,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -67,8 +68,13 @@
      transform="translate(0,-988.36218)">
     <path
        style="font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#999999;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans"
-       d="M 13 4 C 11.355297 4 10 5.3553 10 7 L 10 56 C 10 57.6447 11.355297 59 13 59 L 48 59 C 49.644703 59 51 57.6447 51 56 L 51 7 C 51 5.3553 49.644703 4 48 4 L 13 4 z M 17 9 L 44 9 C 45.090701 9 46 9.9093 46 11 L 46 32 C 46 33.0907 45.090701 34 44 34 L 17 34 C 15.909299 34 15 33.0907 15 32 L 15 11 C 15 9.9093 15.909299 9 17 9 z M 29.8125 42 A 1.0001 1.0001 0 0 1 30 42 L 31 42 L 42 42 L 43 42 A 1.0001 1.0001 0 0 1 44 43 L 44 45 A 1.0001 1.0001 0 0 1 43 46 L 42 46 L 31 46 L 30 46 A 1.0001 1.0001 0 0 1 29 45 L 29 43 A 1.0001 1.0001 0 0 1 29.8125 42 z "
+       d="M 11,4 C 9.355297,4 8,5.3553 8,7 l 0,50 c 0,1.6447 1.355297,3 3,3 l 42,0 c 1.644703,0 3,-1.3553 3,-3 L 56,7 C 56,5.3553 54.644703,4 53,4 z m 3,4 36,0 c 1.090701,0 2,0.9093 2,2 l 0,24 c 0,1.0907 -0.909299,2 -2,2 l -36,0 c -1.090701,0 -2,-0.9093 -2,-2 L 12,10 C 12,8.9093 12.909299,8 14,8 z M 32.8125,40 C 32.87482,39.9941 32.937684,39.9941 33,40 l 1,0 16,0 1,0 c 0.523584,5.2e-5 0.999948,0.476416 1,1 l 0,2 c -5.2e-5,0.523584 -0.476416,0.999948 -1,1 l -1,0 -16,0 -1,0 c -0.523584,-5.2e-5 -0.999948,-0.476416 -1,-1 l 0,-2 c -0.0082,-0.4666 0.354098,-0.912533 0.8125,-1 z"
        transform="translate(0,988.36218)"
-       id="rect2985" />
+       id="rect2985"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="sssssssssssssssssscccccccccccccc"
+       inkscape:export-filename="../../public/logo.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
   </g>
 </svg>
