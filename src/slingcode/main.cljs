@@ -260,11 +260,11 @@
   [:section#about.screen
    [:p.title "Slingcode"]
    [:p "Personal computing platform."]
-   [:p.light "Git revno: " revision]
    [:p "Copyright Chris McCormick, 2020."]
    [:ul
     [:li [:a {:href "https://twitter.com/mccrmx"} "@mccrmx"]]
     [:li [:a {:href "https://mccormick.cx"} "https://mccormick.cx/"]]]
+   [:p.light "Revision: " revision]
    [:button {:on-click #(swap! state dissoc :mode)} "Ok"]])
 
 (defn component-main [{:keys [state ui] :as app-data}]
