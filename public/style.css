@@ -48,7 +48,21 @@ a:hover {
 
 button {
   cursor: pointer;
+  background-color: #E5B413;
+  border: 0px;
+  border-radius: 3px;
+  width: 128px;
+  font-size: 24px;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  color: #232323;
+  height: 48px;
 }
+
+button:hover {
+  background-color: #eee;
+}
+
 
 .light {
   color: #666;
@@ -145,22 +159,6 @@ div.app {
   cursor: pointer;
 }
 
-button {
-  border: 0px;
-  border-radius: 3px;
-  background-color: #aaa;
-  width: 128px;
-  font-size: 24px;
-  font-family: "Courier New", monospace;
-  font-weight: bold;
-  color: #232323;
-  height: 48px;
-}
-
-button:hover {
-  background-color: #eee;
-}
-
 div.app button svg {
   fill: #232323;
   margin-top: 6px;
@@ -241,7 +239,6 @@ button#add-app {
   width: 64px;
   height: 64px;
   border: 0px;
-  background-color: #aaa;
   color: #232a25;
   border: 4px solid #232a25;
 }
