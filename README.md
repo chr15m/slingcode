@@ -1,3 +1,5 @@
+<p align="center" id="gh-logo"><img src="src/slingcode/logo.svg?sanitize=true" alt="Slingcode logo"></p>
+
 Slingcode is a personal computing platform in a single html file.
 
 * You can make, run, and share web apps with it.

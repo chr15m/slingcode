@@ -9,6 +9,9 @@ slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css 
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
 
+index.html: src/slingcode-site-bootleg.clj README.md src/slingcode-static.html
+	$(BOOTLEG) src/slingcode-site-bootleg.clj > $@
+
 build/logo-b64-href.txt: build/logo.png
 	echo "data:image/png;base64,"`base64 $< -w0` > $@
 
