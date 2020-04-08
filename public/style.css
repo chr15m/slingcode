@@ -50,6 +50,10 @@ button {
   cursor: pointer;
 }
 
+.light {
+  color: #666;
+}
+
 section#header p {
   margin-left: 1em;
 }
