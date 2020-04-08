@@ -39,11 +39,11 @@ h1 {
 
 a {
   text-decoration: none;
-  color: #aaa;
+  color: #31D584;
 }
 
 a:hover {
-  color: #eee;
+  color: #8FF8C4;
 }
 
 button {
@@ -59,10 +59,14 @@ button {
   height: 48px;
 }
 
+blockquote {
+  font-style: italic;
+  color: #666;
+}
+
 button:hover {
   background-color: #eee;
 }
-
 
 .light {
   color: #666;
@@ -98,6 +102,29 @@ nav {
 
 .title {
   color: #eee;
+}
+
+/*** website markdown ***/
+
+section.website li {
+  margin-bottom: 0.5em;
+}
+
+section.website code {
+  font-family: "Courier New", monospace;
+  font-size: 24px;
+  font-weight: bold;
+  color: #eee;
+}
+
+section.website img {
+  max-width: 100%;
+  margin: auto;
+  display: block;
+  border: 2px solid #eee;
+  border-radius: 5px;
+  margin-top: 3em;
+  margin-bottom: 3em;
 }
 
 /*** apps ***/
