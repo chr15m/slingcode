@@ -189,7 +189,8 @@
       (swap! ui assoc-in [:windows id] w))
     ; let the user know the window was blocked from opening
     (js/setTimeout
-      (fn [] (when (aget w "closed") (js/alert "We couldn't open the app window.\nSometimes ad-blockers mistakenly do this.\nTry turning disabling your ad-blocker\nfor this site and refreshing.")))
+      (fn [] (when (aget w "closed")
+               (js/alert "We couldn't open the app window.\nSometimes ad-blockers mistakenly do this.\nTry turning disabling your ad-blocker\nfor this site and refreshing.")))
       250)))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
