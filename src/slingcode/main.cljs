@@ -220,6 +220,10 @@
     (let [zipfile (<! (make-zip store id title))]
       (js/window.open (js/window.URL.createObjectURL zipfile)))))
 
+(defn toggle-about-screen! [state ev]
+  (.preventDefault ev)
+  (swap! state update-in [:mode] (fn [mode] (if (not= mode :about) :about))))
+
 ; ***** views ***** ;
 
 (defn component-editor [{:keys [state ui] :as app-data}]
@@ -260,12 +264,13 @@
   [:section#about.screen
    [:p.title "Slingcode"]
    [:p "Personal computing platform."]
+   [:p [:a {:href "https://slingcode.net/"} "slingcode.net"]]
    [:p "Copyright Chris McCormick, 2020."]
    [:ul
     [:li [:a {:href "https://twitter.com/mccrmx"} "@mccrmx"]]
-    [:li [:a {:href "https://mccormick.cx"} "https://mccormick.cx/"]]]
+    [:li [:a {:href "https://mccormick.cx"} "mccormick.cx"]]]
    [:p.light "Revision: " revision]
-   [:button {:on-click #(swap! state dissoc :mode)} "Ok"]])
+   [:button {:on-click (partial toggle-about-screen! state)} "Ok"]])
 
 (defn component-main [{:keys [state ui] :as app-data}]
   (let [apps (r/cursor state [:apps])
@@ -277,7 +282,7 @@
       [:div#logo
        [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
        [:span "Slingcode"]
-       [:nav [:a {:href "#" :on-click #(swap! state assoc :mode :about)} "About"]]
+       [:nav [:a {:href "#" :on-click (partial toggle-about-screen! state)} "About"]]
        [:svg {:width "100%" :height "60px"}
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
