@@ -7,6 +7,8 @@ SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
+slingcode.net: slingcode.net/index.html slingcode.net/slingcode.html
+
 slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
