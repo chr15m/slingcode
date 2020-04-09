@@ -131,6 +131,10 @@ section.website h3 {
   margin-top: 3em;
 }
 
+section.website blockquote {
+  color: #50A1EA;
+}
+
 /*** apps ***/
 
 /* tags */
@@ -239,7 +243,11 @@ div.app .link-out svg {
 }
 
 #apps p.title {
-  color: #eee;
+  color: #50A1EA;
+}
+
+#apps a svg {
+  fill: #50A1EA;
 }
 
 #apps p {
