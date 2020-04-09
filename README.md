@@ -17,7 +17,7 @@ Slingcode is a personal computing platform in a single html file.
 
 Remember when computers were fun? When a kid could type out a BASIC listing from a magazine and make magic with light and sound. When your computer belonged to you and you could understand the software running on it.
 
-![Apple IIe](./public/appleIIe.png)
+![Apple IIe](./public/img/appleIIe.png)
 
 I'm trying to recreate that magic with Slingcode. To get rid of all the tooling and dependencies and hosting problems, and make coding fun again. To help you bridge the gap between your idea and running code.
 
