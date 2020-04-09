@@ -25,7 +25,7 @@ I built it so I can teach my kids to code without all the complex setup you need
 
 ### Hack & contribute
 
-Slingcode is built with [ClojureScript](https://clojurescript.org/). To get started check out the codebase and run `make`.
+Slingcode is built with [ClojureScript](https://clojurescript.org/). To get started [check out the codebase](https://github.com/chr15m/slingcode) and run `make`.
 
 ### Who
 
