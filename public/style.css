@@ -127,6 +127,10 @@ section.website img {
   margin-bottom: 3em;
 }
 
+section.website h1 {
+  margin-top: 3em;
+}
+
 /*** apps ***/
 
 /* tags */
