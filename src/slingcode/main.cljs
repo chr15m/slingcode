@@ -190,7 +190,7 @@
     ; let the user know the window was blocked from opening
     (js/setTimeout
       (fn [] (when (aget w "closed")
-               (js/alert "We couldn't open the app window.\nSometimes ad-blockers mistakenly do this.\nTry turning disabling your ad-blocker\nfor this site and refreshing.")))
+               (swap! state assoc :warning "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh.")))
       250)))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
@@ -288,20 +288,23 @@
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
 
+     (when (@state :warning)
+       [:div.warning [:div.message {:on-click (fn [ev] (.preventDefault ev) (swap! state dissoc :warning))} [component-icon :times] (@state :warning)]])
+
      (case mode
        :about [component-about state]
        :edit [component-editor app-data]
        nil [:section#apps.screen
-              [:section#tags
-               [:ul
-                [:li.active [:a {:href "#all"} "All"]]
-                [:li [:a {:href "#examples"} "Examples"]]
-                [:li [:a {:href "#templates"} "Templates"]]]]
+            [:section#tags
+             [:ul
+              [:li.active [:a {:href "#all"} "All"]]
+              [:li [:a {:href "#examples"} "Examples"]]
+              [:li [:a {:href "#templates"} "Templates"]]]]
 
-              (for [[id app] @apps]
-                [:div {:key id} [component-list-app app-data id app]])
+            (for [[id app] @apps]
+              [:div {:key id} [component-list-app app-data id app]])
 
-              [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
+            [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
 
 ; ***** init ***** ;
 

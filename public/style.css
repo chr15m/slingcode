@@ -104,6 +104,29 @@ nav {
   color: #eee;
 }
 
+.warning {
+  width: 100%;
+  position: fixed;
+  top: 1em;
+}
+
+.warning .message {
+  background-color: #232a25;
+  color: #C64438;
+  border: 2px solid #C64438;
+  border-radius: 5px;
+  width: 800px;
+  max-width: 100%;
+  margin: auto;
+  padding: 1em;
+}
+
+.warning .message svg {
+  fill: #C64438;
+  float: right;
+  cursor: pointer;
+}
+
 /*** website markdown ***/
 
 section.website li {
