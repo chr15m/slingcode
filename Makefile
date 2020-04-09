@@ -1,16 +1,22 @@
 STATIC=index.html style.css logo.png
 BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
+SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/logo.svg public/logo.png
+SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
 
 # bootleg stuff
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
-slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
+slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
 
-index.html: src/slingcode-site-bootleg.clj README.md src/slingcode-static.html
+slingcode.net/index.html: src/slingcode-site-bootleg.clj README.md src/slingcode-static.html $(SITEFILES_DEST)
 	$(BOOTLEG) src/slingcode-site-bootleg.clj > $@
+
+slingcode.net/public/%: public/%
+	@mkdir -p `dirname $@`
+	cp $< $@
 
 build/logo-b64-href.txt: build/logo.png
 	echo "data:image/png;base64,"`base64 $< -w0` > $@
