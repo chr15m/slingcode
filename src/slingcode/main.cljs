@@ -265,12 +265,12 @@
   [:section#about.screen
    [:p.title "Slingcode"]
    [:p "Personal computing platform."]
-   [:p [:a {:href "https://slingcode.net/"} "slingcode.net"]]
    [:p "Copyright Chris McCormick, 2020."]
    [:ul
     [:li [:a {:href "https://twitter.com/mccrmx"} "@mccrmx"]]
     [:li [:a {:href "https://mccormick.cx"} "mccormick.cx"]]]
    [:p.light "Revision: " revision]
+   [:p [:a {:href "https://slingcode.net/"} "slingcode.net"]]
    [:button {:on-click (partial toggle-about-screen! state)} "Ok"]])
 
 (defn component-main [{:keys [state ui] :as app-data}]
