@@ -182,6 +182,20 @@
 (defn is-view-mode [search-string]
   (= (.indexOf search-string load-mode-qs) 0))
 
+(defn in [a b]
+  (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
+
+(defn filter-search [apps search]
+  (let [search (if search (.toLowerCase search) "")]
+    (into {} (filter
+               (fn [[k v]]
+                 (print (v :title) (v :description))
+                 (or (= search "")
+                     (nil? search)
+                     (in (v :title) search)
+                     (in (v :description) search)))
+               apps))))
+
 ; ***** events ***** ;
 
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
@@ -320,12 +334,17 @@
        :edit [component-editor app-data]
        nil [:section#apps.screen
             [:section#tags
-             [:ul
-              [:li.active [:a {:href "#all"} "All"]]
-              [:li [:a {:href "#examples"} "Examples"]]
-              [:li [:a {:href "#templates"} "Templates"]]]]
+             #_ [:ul
+                 [:li.active [:a {:href "#all"} "All"]]
+                 [:li [:a {:href "#examples"} "Examples"]]
+                 [:li [:a {:href "#templates"} "Templates"]]]
 
-            (for [[id app] @apps]
+             [:div#search
+              [:input {:placeholder "Search" :on-change #(swap! state assoc :search (-> % .-target .-value)) :value (@state :search)}]
+              [:span.icon-search [component-icon :search]]
+              [:span.icon-times {:on-click #(swap! state dissoc :search)} [component-icon :times]]]]
+
+            (for [[id app] (filter-search @apps (@state :search))]
               [:div {:key id} [component-list-app app-data id app]])
 
             [:button#add-app {:on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))} "+"]])]))

@@ -167,6 +167,42 @@ section.website blockquote {
 
 /*** apps ***/
 
+#search svg {
+  width: 32px;
+}
+
+#search span {
+  position: relative;
+  top: -1.9em;
+}
+
+#search .icon-search {
+  fill: #555;
+  float: left;
+}
+
+#search .icon-times {
+  fill: #999;
+  float: right;
+  cursor: pointer;
+}
+
+#search input {
+  padding-left: 48px;
+  width: 100%;
+  margin-bottom: 0.5em;
+  border: none;
+  background-color: transparent;
+  font-family: "Courier New", monospace;
+  font-size: 24px;
+  font-weight: bold;
+  color: #999;
+}
+
+#search input::placeholder{
+  color: #999;
+}
+
 /* tags */
 
 #tags {
