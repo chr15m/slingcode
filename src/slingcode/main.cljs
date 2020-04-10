@@ -223,6 +223,11 @@
   (.preventDefault ev)
   (save-handler! app-data id (@ui :editor)))
 
+(defn save-and-open-app! [{:keys [state ui] :as app-data} id ev]
+  (go
+    (<! (save-file! app-data id ev))
+    (open-app! app-data id ev)))
+
 (defn delete-file! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
   (when (js/confirm "Are you sure you want to delete this app?")
@@ -251,7 +256,7 @@
     [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data (@state :app))} "delete"]]
     [:li (if (-> @ui :windows (get (@state :app)))
            [:span "(opened)"]
-           [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"])]]
+           [:a {:href "#" :on-click (partial save-and-open-app! app-data (@state :app))} "open"])]]
    [:ul#files
     (doall (for [f (@state :files)]
              [:li.active {:key (.-name f)} (.-name f)]))
@@ -323,7 +328,7 @@
             (for [[id app] @apps]
               [:div {:key id} [component-list-app app-data id app]])
 
-            [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
+            [:button#add-app {:on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))} "+"]])]))
 
 (defn component-child-container []
   [:iframe#result])
