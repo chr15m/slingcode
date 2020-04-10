@@ -19,6 +19,7 @@
 (defonce ui-state (r/atom {}))
 (defonce dom-parser (js/DOMParser.))
 (def uuid-re (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
+(def load-mode-qs "?view")
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 (def logo (rc/inline "slingcode/logo.svg"))
@@ -99,9 +100,10 @@
 ; ***** functions ***** ;
 
 (defn adblock-detect! [ui el]
-  (when el
-    (if (= (.-offsetHeight el) 0)
-      (swap! ui assoc :adblocked true))))
+  (when (and el (= (.-offsetHeight el) 0))
+    ;(js/console.log "BLOCKED")
+    (swap! ui assoc :adblocked true)
+    (print "Adblock detection:" (@ui :adblocked))))
 
 (defn attach-unload-event! [ui id win which]
   (.addEventListener win "unload"
@@ -124,24 +126,30 @@
                        ;(.addEventListener win "beforeunload" (fn [ev] (print "beforeunload")))
                        (print "window load" id))))
 
-(defn save-handler! [{:keys [state ui store] :as app-data} id cm]
-  (let [content (.getValue cm)
-        win (-> @ui :windows (get id))
-        ;doc (when win (.-document win))
-        files [(js/File. #js [content] "index.html" #js {:type "text/html"})]]
-    (go
-      (js/console.log "Window:" win)
-      ;(js/console.log "Document:" doc)
-      ;(js/console.log "New content:" content)
-      (when win
-        (aset win "skipunload" true)
+(defn update-window-content! [{:keys [state ui store] :as app-data} files title id]
+  (let [win (-> @ui :windows (get id))]
+    (when win
+        ;(aset win "skipunload" true)
         ;(.addEventListener win "load" (fn [ev] (print "load catch A")))
-        (-> win .-location (.replace (js/window.URL.createObjectURL (get files 0))))
-        (print "window after setting location")
+        ;(-> win .-location (.replace (js/window.URL.createObjectURL (get files 0))))
+        (let [frame (-> win .-document (.getElementById "result"))
+              title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)]
+          (aset frame "src" (js/window.URL.createObjectURL (get files 0)))
+          (aset title-element "textContent" title))
+        (print "window after updating content")
         ;(.addEventListener win "load" (fn [ev] (print "load catch B")))
         ;(js/setTimeout #(.addEventListener win "load" (fn [ev] (print "load catch D"))) 3)
         ;(.addEventListener (.-document win) "DOMContentLoaded" (fn [ev] (print "dom content loaded")))
-        )
+        )))
+
+(defn save-handler! [{:keys [state ui store] :as app-data} id cm]
+  (let [content (.getValue cm)
+        files [(js/File. #js [content] "index.html" #js {:type "text/html"})]
+        dom (.parseFromString dom-parser content "text/html")
+        title (.querySelector dom "title")
+        title (if title (.-textContent title) "Untitled app")]
+    (go
+      (update-window-content! app-data files title id)
       ; TODO: catch exception and warn if disk full
       (<p! (.setItem store (str "app/" id) (clj->js files)))
       (swap! state assoc :apps (<! (get-apps-data store))))))
@@ -165,31 +173,39 @@
       (when (and dom-node (not (aget dom-node "CM")))
         (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))
 
-(defn launch-window! [ui id files]
-  (let [file (get files 0)
-        url (js/window.URL.createObjectURL file)
-        win (js/window.open url (str "window-" id))]
+(defn launch-window! [ui id]
+  (let [win (js/window.open load-mode-qs (str "window-" id))]
     (attach-load-event! ui id win)
+    ;(attach-unload-event! ui id win "from-load")
     win))
+
+(defn is-view-mode [search-string]
+  (= (.indexOf search-string load-mode-qs) 0))
 
 ; ***** events ***** ;
 
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
-  (let [files (-> @state :apps (get id) :files)
-        w (-> @ui :windows (get id))
-        w (if (not (and w (.-closed w))) w)
-        w (or w (launch-window! ui id files))]
-    (js/console.log "focusing on" w)
-    (when w
+  (let [app (-> @state :apps (get id))
+        files (app :files)
+        title (app :title)
+        win (-> @ui :windows (get id))
+        win (if (not (and win (.-closed win))) win)
+        win (or win (launch-window! ui id))]
+    (.addEventListener win "load"
+                       (fn [ev]
+                         (update-window-content! app-data files title id)
+                         (print "window load" id)))
+    ;(js/console.log "focusing window" w)
+    (when win
       ;(.blur w)
       ;(.blur js/window)
-      (.focus w)
+      (.focus win)
       ;(js/setTimeout #(.focus w) 0)
-      (swap! ui assoc-in [:windows id] w))
+      (swap! ui assoc-in [:windows id] win))
     ; let the user know the window was blocked from opening
     (js/setTimeout
-      (fn [] (when (aget w "closed")
+      (fn [] (when (aget win "closed")
                (swap! state assoc :warning "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh.")))
       250)))
 
@@ -244,7 +260,7 @@
     (doall (for [f (@state :files)]
              [:div.editor {:key (.-name f) :ref (partial init-cm! app-data (@state :app))}]))]])
 
-(defn component-list-app [app-data id app]
+(defn component-list-app [{:keys [state ui] :as app-data} id app]
   [:div.app
    [:div.columns
     [:div.column
@@ -252,9 +268,9 @@
      [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
      [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
     [:div.column
-     [:a.title {:href (js/window.URL.createObjectURL (get (app :files) 0))
-          :on-click (partial open-app! app-data id)
-          :target (str "window-" id)}
+     [:a.title  {:href (js/window.URL.createObjectURL (get (app :files) 0))
+                 :on-click (partial open-app! app-data id)
+                 :target (str "window-" id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
      [:p (app :description)]
      [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]
@@ -291,6 +307,9 @@
      (when (@state :warning)
        [:div.warning [:div.message {:on-click (fn [ev] (.preventDefault ev) (swap! state dissoc :warning))} [component-icon :times] (@state :warning)]])
 
+     #_ (when (@ui :adblocked)
+       [:pre.warning [:div.message "Adblocked."]])
+
      (case mode
        :about [component-about state]
        :edit [component-editor app-data]
@@ -306,6 +325,9 @@
 
             [:button#add-app {:on-click (partial edit-app! app-data (random-uuid) (make-boilerplate-files))} "+"]])]))
 
+(defn component-child-container []
+  [:iframe#result])
+
 ; ***** init ***** ;
 
 (defn render [app-data]
@@ -314,11 +336,14 @@
 
 (defn reload! []
   (println "reload!")
-  (go
-    (let [store (.createInstance localforage #js {:name "slingcode-apps"})
-          app-data {:state (r/atom {:apps (<! (get-apps-data store))}) :ui ui-state :store store}
-          {:keys [state ui]} app-data]
-      (render app-data))))
+  (let [qs (-> js/document .-location .-search)]
+    (if (is-view-mode qs)
+      (r/render [component-child-container] (js/document.getElementById "app"))
+      (go
+        (let [store (.createInstance localforage #js {:name "slingcode-apps"})
+              app-data {:state (r/atom {:apps (<! (get-apps-data store))}) :ui ui-state :store store}
+              {:keys [state ui]} app-data]
+          (render app-data))))))
 
 (defn main! []
   (println "main!")
