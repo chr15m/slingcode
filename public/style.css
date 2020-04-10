@@ -100,6 +100,13 @@ nav {
   right: 1em;
 }
 
+@media (max-width: 600px) {
+  nav {
+    top: 3.5em;
+    z-index: 100;
+  }
+}
+
 .title {
   color: #eee;
 }
@@ -241,10 +248,31 @@ div.app .link-out svg {
   display: flex;
 }
 
+@media (max-width: 600px) {
+  #apps .columns {
+    flex-direction: column;
+  }
+
+  #apps .column > * {
+    display: inline-block;
+    margin-right: 0.25em;
+  }
+
+  #apps .column > *:first-child {
+    display: block;
+  }
+}
+
 #apps .column {
   display: inline-block;
   padding: 1em;
   vertical-align: top;
+}
+
+@media (max-width: 600px) {
+  #apps .column {
+    padding: 0px;
+  }
 }
 
 #apps .column > * {
@@ -316,6 +344,13 @@ section#editor #file-menu {
   margin-top: -3.5em;
   margin-left: 136px;
   position: relative;
+}
+
+@media (max-width: 600px) {
+  section#editor #file-menu {
+    margin-top: 0px;
+    margin-left: 0px;
+  }
 }
 
 section#editor #file-menu li {
