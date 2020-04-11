@@ -22,6 +22,7 @@
 (def load-mode-qs "?view")
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
+(def not-found-app (rc/inline "slingcode/not-found.html"))
 (def logo (rc/inline "slingcode/logo.svg"))
 (def revision (rc/inline "slingcode/revision.txt"))
 
@@ -133,9 +134,10 @@
         ;(.addEventListener win "load" (fn [ev] (print "load catch A")))
         ;(-> win .-location (.replace (js/window.URL.createObjectURL (get files 0))))
         (let [frame (-> win .-document (.getElementById "result"))
-              title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)]
-          (aset frame "src" (js/window.URL.createObjectURL (get files 0)))
-          (aset title-element "textContent" title))
+              title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
+              file (if files (get files 0) (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
+          (aset frame "src" (js/window.URL.createObjectURL file))
+          (aset title-element "textContent" (or title "Untitled app")))
         (print "window after updating content")
         ;(.addEventListener win "load" (fn [ev] (print "load catch B")))
         ;(js/setTimeout #(.addEventListener win "load" (fn [ev] (print "load catch D"))) 3)
@@ -201,8 +203,8 @@
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
   (let [app (-> @state :apps (get id))
-        files (app :files)
-        title (app :title)
+        files (if app (app :files))
+        title (if app (app :title))
         win (-> @ui :windows (get id))
         win (if (not (and win (.-closed win))) win)
         win (or win (launch-window! ui id))]
@@ -237,11 +239,6 @@
   (.preventDefault ev)
   (save-handler! app-data id (@ui :editor)))
 
-(defn save-and-open-app! [{:keys [state ui] :as app-data} id ev]
-  (go
-    (<! (save-file! app-data id ev))
-    (open-app! app-data id ev)))
-
 (defn delete-file! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
   (when (js/confirm "Are you sure you want to delete this app?")
@@ -270,7 +267,7 @@
     [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data (@state :app))} "delete"]]
     [:li (if (-> @ui :windows (get (@state :app)))
            [:span "(opened)"]
-           [:a {:href "#" :on-click (partial save-and-open-app! app-data (@state :app))} "open"])]]
+           [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"])]]
    [:ul#files
     (doall (for [f (@state :files)]
              [:li.active {:key (.-name f)} (.-name f)]))
