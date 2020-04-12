@@ -337,9 +337,10 @@
                  [:li [:a {:href "#templates"} "Templates"]]]
 
              [:div#search
-              [:input {:placeholder "Search" :on-change #(swap! state assoc :search (-> % .-target .-value)) :value (@state :search)}]
+              [:input {:placeholder "Filter" :on-change #(swap! state assoc :search (-> % .-target .-value)) :value (@state :search)}]
               [:span.icon-search [component-icon :search]]
-              [:span.icon-times {:on-click #(swap! state dissoc :search)} [component-icon :times]]]]
+              (when (and (@state :search) (not= (@state :search) ""))
+                [:span.icon-times {:on-click #(swap! state dissoc :search)} [component-icon :times]])]]
 
             (for [[id app] (filter-search @apps (@state :search))]
               [:div {:key id} [component-list-app app-data id app]])
