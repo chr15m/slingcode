@@ -25,6 +25,7 @@
 (def not-found-app (rc/inline "slingcode/not-found.html"))
 (def logo (rc/inline "slingcode/logo.svg"))
 (def revision (rc/inline "slingcode/revision.txt"))
+(def default-apps-base64-blob (rc/inline "default-apps.zip.b64"))
 
 ; ***** data ***** ;
 
@@ -191,7 +192,6 @@
   (let [search (if search (.toLowerCase search) "")]
     (into {} (filter
                (fn [[k v]]
-                 (print (v :title) (v :description))
                  (or (= search "")
                      (nil? search)
                      (in (v :title) search)
@@ -349,6 +349,40 @@
 (defn component-child-container []
   [:iframe#result])
 
+(def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
+
+(defn zip-parse-extract-valid-dir-and-file
+  [path & [file]]
+  (let [[match rootdir filename] (.match path re-zip-app-files)]
+    (when (and filename (not= filename "") (= (.indexOf filename "/") -1))
+      [rootdir filename])))
+
+(defn zip-parse-extract-file [file]
+  (go
+    (let [[folder filename] (zip-parse-extract-valid-dir-and-file (.-name file))
+          zipped-file-blob (<p! (.async file "blob"))]
+      ; #js {:type "text/html"}
+      {folder [(js/File. (clj->js [zipped-file-blob]) filename)]})))
+
+(defn zip-extract [zip]
+  (go
+    (let [zipped-files (.filter zip zip-parse-extract-valid-dir-and-file)
+          zipped-file-chans (map zip-parse-extract-file zipped-files)
+          zipped-file-contents (<! (async/map (fn [& results] (apply merge-with (concat [into] results))) zipped-file-chans))]
+      zipped-file-contents)))
+
+(defn zip-parse-base64 [base64-blob]
+  (go
+    (let [z (JSZip.)
+          zip (<p! (.loadAsync z base64-blob #js {:base64 true}))]
+      (<! (zip-extract zip)))))
+
+(defn zip-parse-file [file]
+  (go
+    (let [z (JSZip.)
+          zip (<p! (.loadAsync z file))]
+      (<! (zip-extract zip)))))
+
 ; ***** init ***** ;
 
 (defn render [app-data]
@@ -363,7 +397,8 @@
       (go
         (let [store (.createInstance localforage #js {:name "slingcode-apps"})
               app-data {:state (r/atom {:apps (<! (get-apps-data store))}) :ui ui-state :store store}
-              {:keys [state ui]} app-data]
+              default-apps (<! (zip-parse-base64 default-apps-base64-blob))]
+          (js/console.log "Default apps:" (clj->js default-apps))
           (render app-data))))))
 
 (defn main! []

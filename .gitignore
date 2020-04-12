@@ -6,3 +6,4 @@ build
 bin/bootleg-*
 src/slingcode/revision.txt
 slingcode.net
+src/default-apps.zip*

@@ -29,7 +29,7 @@ build/logo-b64-href.txt: build/logo.png
 build/style.min.css: build/style.css
 	npx minify $< > $@
 
-build/js/main.js: $(shell find src) package.json shadow-cljs.edn
+build/js/main.js: $(shell find src) package.json shadow-cljs.edn src/default-apps.zip.b64
 	npx shadow-cljs release app
 
 build/style.css: public/*.css
@@ -38,6 +38,12 @@ build/style.css: public/*.css
 build/%: public/%
 	@mkdir -p `dirname $@`
 	cp $< $@
+
+src/default-apps.zip.b64: src/default-apps.zip
+	base64 $< > $@
+
+src/default-apps.zip: $(shell find src/default-apps)
+	cd src/default-apps && zip -r ../default-apps.zip .
 
 BOOTLEGTAR=bootleg-$(BOOTLEGVERSION)-linux-amd64.tgz
 BOOTLEGURL=https://github.com/retrogradeorbit/bootleg/releases/download/v${BOOTLEGVERSION}/${BOOTLEGTAR}
@@ -56,7 +62,7 @@ src/slingcode/revision.txt:
 
 .PHONY: watch clean
 
-watch: src/slingcode/revision.txt
+watch: src/slingcode/revision.txt src/default-apps.zip.b64
 	npx shadow-cljs watch app 
 
 repl:
