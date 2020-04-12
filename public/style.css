@@ -8,7 +8,7 @@ body, html {
   padding: 0px;
   background-color: #232a25;
   color: #999;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-size: 24px;
   font-weight: bold;
 }
@@ -53,7 +53,7 @@ button {
   border-radius: 3px;
   width: 128px;
   font-size: 24px;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-weight: bold;
   color: #232323;
   height: 48px;
@@ -141,7 +141,7 @@ section.website li {
 }
 
 section.website code {
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-size: 24px;
   font-weight: bold;
   color: #eee;
@@ -193,7 +193,7 @@ section.website blockquote {
   margin-bottom: 0.5em;
   border: none;
   background-color: transparent;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-size: 24px;
   font-weight: bold;
   color: #999;
@@ -359,7 +359,7 @@ button#add-app {
   bottom: 32px;
   right: 32px;
   font-size: 32px;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-weight: bold;
   border-radius: 2em;
   width: 64px;
@@ -431,7 +431,7 @@ div.editor > div {
 
 .CodeMirror {
   background: none !important;
-  font-family: "Courier New", monospace;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-size: 24px;
 }
 
