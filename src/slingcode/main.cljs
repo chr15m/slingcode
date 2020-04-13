@@ -200,6 +200,15 @@
                      (in (v :description) search)))
                apps))))
 
+(defn add-apps! [state store default-apps]
+  (go
+    (let [store-chans (map (fn [[n files]]
+                             (js/console.log "Adding" n files)
+                             (go (<p! (.setItem store (str "app/" (str (random-uuid))) (clj->js files)))))
+                           default-apps)
+          store-results (<! (async/map concat store-chans))]
+      (swap! state assoc :apps (<! (get-apps-data store))))))
+
 ; ***** events ***** ;
 
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
@@ -399,8 +408,14 @@
       (r/render [component-child-container] (js/document.getElementById "app"))
       (go
         (let [store (.createInstance localforage #js {:name "slingcode-apps"})
-              app-data {:state (r/atom {:apps (<! (get-apps-data store))}) :ui ui-state :store store}
+              stored-apps (<! (get-apps-data store))
+              state (r/atom {:apps stored-apps})
+              app-data {:state state :ui ui-state :store store}
+              first-run (nil? (js/localStorage.getItem "slingcode-has-run"))
               default-apps (<! (zip-parse-base64 default-apps-base64-blob))]
+          (when (and first-run (= (count stored-apps) 0))
+            (<! (add-apps! state store default-apps))
+            (js/localStorage.setItem "slingcode-has-run" "true"))
           (js/console.log "Default apps:" (clj->js default-apps))
           (render app-data))))))
 
