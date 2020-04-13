@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <title>Preact demo</title>
+    <meta name="description"
+          content="Preact is like React but small and fast.
+                   This todo-list demo is from the Preact site.">
+    <meta name="slingcode-tags" content="demo,library">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="https://chr15m.github.io/minimal-stylesheet/minimal.css"/>
+    <link rel="stylesheet" type="text/css" href="https://chr15m.github.io/minimal-stylesheet/minimal-inputs.css"/>
+    <style>
+      body { margin: 1em auto; max-width: 800px; text-align: center; font-size: 1.5em; }
+      ul { display: block; text-align: left; list-style-type: '✔ '; margin-top: 2em; }
+      li { cursor: not-allowed; font-size: 2em; }
+    </style>
+  </head>
+  <body>
+    <div id="app">Loading...</div>
+  </body>
+  <script type="module">
+    import { h, Component, render } from 'https://unpkg.com/preact?module';
+
+    export default class TodoList extends Component {
+      state = { todos: [], text: '' };
+
+      setText = e => {
+        this.setState({ text: e.target.value });
+      };
+
+      addTodo = () => {
+        let { todos, text } = this.state;
+        todos = todos.concat({ text });
+        this.setState({ todos, text: '' });
+      };
+
+      removeTodo = (ev) => {
+        let { todos, text } = this.state;
+        console.log(ev);
+        console.log(ev.target);
+        console.log(ev.target.textContent);
+        todos = todos.filter((t, i) => i != ev.target.getAttribute("idx"));
+        this.setState({ todos, text: text });
+      }
+
+      render({ }, { todos, text }) {
+        return [
+          h("h3", null, "Preact todo-list app"),
+          h("form", {onSubmit: this.addTodo, action: "javascript:"},
+                 h("input", {"value": text,
+                             onInput: this.setText,
+                             placeholder: "Todo item..."}),
+                 h("button", {type: "submit"}, "Add"),
+                 h("ul", null,
+                   ...todos.map((todo, i)=>h("li", {onClick: this.removeTodo, idx: i}, todo.text))))];
+      }
+    }
+
+    const el = document.getElementById("app");
+    el.innerHTML = "";
+    render(h(TodoList), el);
+  </script>
+</html>

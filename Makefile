@@ -43,6 +43,7 @@ src/default-apps.zip.b64: src/default-apps.zip
 	base64 $< > $@
 
 src/default-apps.zip: $(shell find src/default-apps)
+	rm -f $@
 	cd src/default-apps && zip -r ../default-apps.zip .
 
 BOOTLEGTAR=bootleg-$(BOOTLEGVERSION)-linux-amd64.tgz

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>jQuery UI demo.</title>
+    <meta name="description" content="A web app built with the classic jQuery UI stack.">
+    <meta name="slingcode-tags" content="demo,library">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://jqueryui.com/resources/demos/style.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        max-width: 800px;
+        margin: 2em auto;
+      }
+
+      table {
+        font-size: 1em;
+      }
+
+      .ui-draggable, .ui-droppable {
+        background-position: top;
+      }
+    </style>
+    <script>
+      $(function() {
+        $("#tabs").tabs();
+        $("#datepicker").datepicker();
+        $("button").button().click(function() {
+          alert("Hello!");
+        });
+        $(function() {
+          $("#tabs-3 input").checkboxradio();
+        });
+      });
+    </script>
+  </head>
+<body>
+  <div id="tabs">
+    <ul>
+      <li><a href="#tabs-1">A button yo</a></li>
+      <li><a href="#tabs-2">Date picker</a></li>
+      <li><a href="#tabs-3">Radio dials</a></li>
+    </ul>
+    <div id="tabs-1">
+      <h3>This is a jQuery UI demo tab.</h3>
+      <p>Proin elit arcu, rutrum commodo, vehicula tempus, commodo a, risus.
+        Curabitur nec arcu. Donec sollicitudin mi sit amet mauris.
+        Nam elementum quam ullamcorper ante. Etiam aliquet massa et lorem.
+        Mauris dapibus lacus auctor risus. Aenean tempor ullamcorper leo.
+        Vivamus sed magna quis ligula eleifend adipiscing. Duis orci.
+        Aliquam sodales tortor vitae ipsum. Aliquam nulla. Duis aliquam molestie erat.
+        Ut et mauris vel pede varius sollicitudin. Sed ut dolor nec orci tincidunt interdum.
+        Phasellus ipsum. Nunc tristique tempus lectus.</p>
+      <p><button>A button element</button></p>
+    </div>
+    <div id="tabs-2">
+      <p>Morbi tincidunt, dui sit amet facilisis feugiat, odio metus gravida ante, ut pharetra massa metus id nunc.
+        Duis scelerisque molestie turpis.
+        Sed fringilla, massa eget luctus malesuada, metus eros molestie lectus, ut tempus eros massa ut dolor.
+        Aenean aliquet fringilla sem. Suspendisse sed ligula in ligula suscipit aliquam.
+        Praesent in eros vestibulum mi adipiscing adipiscing. Morbi facilisis.
+        Curabitur ornare consequat nunc. Aenean vel metus. Ut posuere viverra nulla.
+        Aliquam erat volutpat. Pellentesque convallis.
+        Maecenas feugiat, tellus pellentesque pretium posuere, felis lorem euismod felis, eu ornare leo nisi vel felis.
+        Mauris consectetur tortor et purus.</p>
+      <p>Date: <input type="text" id="datepicker"></p>
+    </div>
+    <div id="tabs-3">
+      <h1>Checkbox / radio demo</h1>
+      <h2>Radio Group</h2>
+      <fieldset>
+        <legend>Select a Location: </legend>
+        <label for="radio-1">New York</label>
+        <input type="radio" name="radio-1" id="radio-1">
+        <label for="radio-2">Paris</label>
+        <input type="radio" name="radio-1" id="radio-2">
+        <label for="radio-3">London</label>
+        <input type="radio" name="radio-1" id="radio-3">
+      </fieldset>
+
+      <h2>Checkbox</h2>
+      <fieldset>
+        <legend>Hotel Ratings: </legend>
+        <label for="checkbox-1">2 Star</label>
+        <input type="checkbox" name="checkbox-1" id="checkbox-1">
+        <label for="checkbox-2">3 Star</label>
+        <input type="checkbox" name="checkbox-2" id="checkbox-2">
+        <label for="checkbox-3">4 Star</label>
+        <input type="checkbox" name="checkbox-3" id="checkbox-3">
+        <label for="checkbox-4">5 Star</label>
+        <input type="checkbox" name="checkbox-4" id="checkbox-4">
+      </fieldset>
+
+      <h2>Checkbox nested in label</h2>
+      <fieldset>
+        <legend>Bed Type: </legend>
+        <label for="checkbox-nested-1">2 Double
+          <input type="checkbox" name="checkbox-nested-1" id="checkbox-nested-1">
+        </label>
+        <label for="checkbox-nested-2">2 Queen
+          <input type="checkbox" name="checkbox-nested-2" id="checkbox-nested-2">
+        </label>
+        <label for="checkbox-nested-3">1 Queen
+          <input type="checkbox" name="checkbox-nested-3" id="checkbox-nested-3">
+        </label>
+        <label for="checkbox-nested-4">1 King
+          <input type="checkbox" name="checkbox-nested-4" id="checkbox-nested-4">
+        </label>
+      </fieldset>
+    </div>
+  </div>
+</body>
+</html>

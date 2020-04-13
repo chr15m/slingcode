@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <title>A LISP called Wisp.</title>
+    <meta name="description" content="You can build web-apps with a LISP instead of JavaScript.">
+    <meta name="slingcode-tags" content="demo,library">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="slingcode-tags" content="">
+    <style>
+      body { max-width: 800px; width: 100%; margin: 1em auto; font-size: 2em; background-color: #eee; }
+      button { border-radius: 5px; border: 1px solid black; font-weight: bold; padding: 0.5em 1em; background-color: #333; color: white; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <h2>Hello World.</h2>
+      <button id="hello">Say hello to</button>
+      <input id="name" placeholder="name"/>
+    </div>
+  </body>
+  <script type="application/wisp">
+    (defn $ [n] (.getElementById document n))
+    (.addEventListener ($ "hello")
+      "click"
+      (fn [ev] (alert (str "Hello " (.-value ($ "name"))))))
+  </script>
+  <script src="https://gozala.io/wisp/dist/wisp.min.js"></script>
+</html>
