@@ -8,6 +8,7 @@
     [slingcode.icons :refer [component-icon]]
     ["jszip" :as JSZip]
     ["localforage" :as localforage]
+    ["mime-types" :as mime-types]
     ["codemirror" :as CodeMirror]
     ["codemirror/mode/htmlmixed/htmlmixed" :as htmlmixed]
     ["codemirror/mode/xml/xml" :as xml]
@@ -372,9 +373,9 @@
 (defn zip-parse-extract-file [file]
   (go
     (let [[folder filename] (zip-parse-extract-valid-dir-and-file (.-name file))
-          zipped-file-blob (<p! (.async file "blob"))]
-      ; #js {:type "text/html"}
-      {folder [(js/File. (clj->js [zipped-file-blob]) filename)]})))
+          zipped-file-blob (<p! (.async file "blob"))
+          mime-type (or (mime-types/lookup filename) "application/octet-stream")]
+      {folder [(js/File. (clj->js [zipped-file-blob]) filename (clj->js {:type (or (mime-types/lookup filename) "application/octet-stream")}))]})))
 
 (defn zip-extract [zip]
   (go

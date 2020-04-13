@@ -4,6 +4,7 @@
     "create-react-class": "^15.6.3",
     "jszip": "^3.3.0",
     "localforage": "^1.7.3",
+    "mime-types": "^2.1.26",
     "minify": "^5.1.1",
     "niceware": "^2.0.0",
     "react": "^16.12.0",
