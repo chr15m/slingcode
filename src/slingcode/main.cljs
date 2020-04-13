@@ -97,7 +97,9 @@
         (let [file (nth files i)
               blob (nth blobs i)]
           (.file folder (.-name file) blob)))
-      (<p! (.generateAsync zip #js {:type "blob"})))))
+      (let [zip-blob (<p! (.generateAsync zip #js {:type "blob"}))
+            zipfile (js/File. (clj->js [zip-blob]) (str slug ".zip") #js {:type "application/zip"})]
+        zipfile))))
 
 ; ***** functions ***** ;
 
