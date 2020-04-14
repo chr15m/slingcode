@@ -373,6 +373,55 @@ button#add-app {
   background-color: #eee;
 }
 
+#add-menu {
+  position: fixed;
+  bottom: 64px;
+  right: 48px;
+  border-radius: 5px;
+  border: 2px solid #E5B413;
+  background-color: #232a25;
+  padding: 0.25em;
+}
+
+#add-menu ul {
+  list-style-type: none;
+  padding: 0px;
+  margin: 0px;
+  padding-bottom: 24px;
+}
+
+#add-menu ul li {
+  margin-left: 0px;
+  display: block;
+  margin: 0px 0.25em;
+  background-color: #e5b413;
+  padding: 0.25em;
+  border-radius: 4px;
+  margin: 0.25em;
+}
+
+#add-menu ul li a {
+  color: #232a25;
+  padding: 0.5em;
+  border-radius: 5px;
+}
+
+#add-menu ul li:hover {
+  background-color: #eee;
+}
+
+#add-menu label {
+  color: #232a25;
+}
+
+#add-menu input[type=file] {
+  opacity: 0;
+  float: right;
+  position: absolute;
+  max-width: 90%;
+  font-size: 0.75em;
+}
+
 /*** editor ***/
 
 section#editor #file-menu {

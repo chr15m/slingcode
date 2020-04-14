@@ -204,6 +204,8 @@
                apps))))
 
 (defn add-apps! [state store default-apps]
+  ; TODO: some kind of validation that this
+  ; infact contains a reasonable web app
   (go
     (let [store-chans (map (fn [[n files]]
                              (js/console.log "Adding" n files)
@@ -303,7 +305,25 @@
   (.preventDefault ev)
   (swap! state update-in [:mode] (fn [mode] (if (not= mode :about) :about))))
 
+(defn toggle-add-menu! [state ev]
+  (.preventDefault ev)
+  (swap! state update-in [:add-menu] not))
+
+(defn initiate-zip-upload! [{:keys [state store ui] :as app-data} ev]
+  (.preventDefault ev)
+  (let [files (js/Array.from (-> ev .-target .-files))]
+    (go (let [apps (<! (zip-parse-file (first files)))]
+          ; TODO: some kind of interaction to tell the user what is in the file
+          (js/console.log files)
+          (js/console.log (clj->js apps))
+          (<! (add-apps! state store apps))
+          (swap! state dissoc :mode :edit)))))
+
 ; ***** views ***** ;
+
+(defn component-upload [{:keys [state ui] :as app-data}]
+  [:div "Upload a zip file"
+   [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
 (defn component-editor [{:keys [state ui] :as app-data}]
   [:section#editor.screen
@@ -375,6 +395,7 @@
      (case mode
        :about [component-about state]
        :edit [component-editor app-data]
+       :upload [component-upload app-data]
        nil [:section#apps.screen
             [:section#tags
              #_ [:ul
@@ -391,7 +412,13 @@
             (for [[id app] (filter-search @apps (@state :search))]
               [:div {:key id} [component-list-app app-data id app]])
 
-            [:button#add-app {:on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))} "+"]])]))
+            (when (@state :add-menu)
+              [:div#add-menu
+               [:ul
+                [:li [:a {:href "#" :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))} "New app"]]
+                [:li [:input {:type "file" :name "upload-zip" :accept "application/zip" :on-change (partial initiate-zip-upload! app-data)}] [:label "From zip"]]]])
+
+            [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
 (defn component-child-container []
   [:iframe#result])
