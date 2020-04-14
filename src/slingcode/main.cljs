@@ -19,7 +19,9 @@
 
 (defonce ui-state (r/atom {}))
 (defonce dom-parser (js/DOMParser.))
-(def uuid-re (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
+(def re-uuid (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
+(def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
+
 (def load-mode-qs "?view")
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
@@ -35,7 +37,7 @@
 
 (defn extract-id [store-key]
   (let [id (.pop (.split store-key "/"))]
-    (when (.match id uuid-re) [id store-key])))
+    (when (.match id re-uuid) [id store-key])))
 
 (defn get-file-contents [file result-type]
   "Wrapper hack to support older Chrome."
@@ -210,6 +212,38 @@
           store-results (<! (async/map concat store-chans))]
       (swap! state assoc :apps (<! (get-apps-data store))))))
 
+(defn zip-parse-extract-valid-dir-and-file
+  [path & [file]]
+  (let [[match rootdir filename] (.match path re-zip-app-files)]
+    (when (and filename (not= filename "") (= (.indexOf filename "/") -1))
+      [rootdir filename])))
+
+(defn zip-parse-extract-file [file]
+  (go
+    (let [[folder filename] (zip-parse-extract-valid-dir-and-file (.-name file))
+          zipped-file-blob (<p! (.async file "blob"))
+          mime-type (or (mime-types/lookup filename) "application/octet-stream")]
+      {folder [(js/File. (clj->js [zipped-file-blob]) filename (clj->js {:type (or (mime-types/lookup filename) "application/octet-stream")}))]})))
+
+(defn zip-extract [zip]
+  (go
+    (let [zipped-files (.filter zip zip-parse-extract-valid-dir-and-file)
+          zipped-file-chans (map zip-parse-extract-file zipped-files)
+          zipped-file-contents (<! (async/map (fn [& results] (apply merge-with (concat [into] results))) zipped-file-chans))]
+      zipped-file-contents)))
+
+(defn zip-parse-base64 [base64-blob]
+  (go
+    (let [z (JSZip.)
+          zip (<p! (.loadAsync z base64-blob #js {:base64 true}))]
+      (<! (zip-extract zip)))))
+
+(defn zip-parse-file [file]
+  (go
+    (let [z (JSZip.)
+          zip (<p! (.loadAsync z file))]
+      (<! (zip-extract zip)))))
+
 ; ***** events ***** ;
 
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
@@ -361,40 +395,6 @@
 
 (defn component-child-container []
   [:iframe#result])
-
-(def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
-
-(defn zip-parse-extract-valid-dir-and-file
-  [path & [file]]
-  (let [[match rootdir filename] (.match path re-zip-app-files)]
-    (when (and filename (not= filename "") (= (.indexOf filename "/") -1))
-      [rootdir filename])))
-
-(defn zip-parse-extract-file [file]
-  (go
-    (let [[folder filename] (zip-parse-extract-valid-dir-and-file (.-name file))
-          zipped-file-blob (<p! (.async file "blob"))
-          mime-type (or (mime-types/lookup filename) "application/octet-stream")]
-      {folder [(js/File. (clj->js [zipped-file-blob]) filename (clj->js {:type (or (mime-types/lookup filename) "application/octet-stream")}))]})))
-
-(defn zip-extract [zip]
-  (go
-    (let [zipped-files (.filter zip zip-parse-extract-valid-dir-and-file)
-          zipped-file-chans (map zip-parse-extract-file zipped-files)
-          zipped-file-contents (<! (async/map (fn [& results] (apply merge-with (concat [into] results))) zipped-file-chans))]
-      zipped-file-contents)))
-
-(defn zip-parse-base64 [base64-blob]
-  (go
-    (let [z (JSZip.)
-          zip (<p! (.loadAsync z base64-blob #js {:base64 true}))]
-      (<! (zip-extract zip)))))
-
-(defn zip-parse-file [file]
-  (go
-    (let [z (JSZip.)
-          zip (<p! (.loadAsync z file))]
-      (<! (zip-extract zip)))))
 
 ; ***** init ***** ;
 
