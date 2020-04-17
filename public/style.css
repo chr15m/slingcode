@@ -470,9 +470,16 @@ section#editor ul#files li.active {
   background-color: #232a25;
 }
 
-section#editor ul#files li a {
-  text-decoration: none;
-  color: #aaa;
+section#editor ul#files li.active input {
+  background: none !important;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  border: none;
+  padding: 0px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 div.editor > div {

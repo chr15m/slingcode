@@ -174,12 +174,15 @@
                   :mode "htmlmixed"})]
     cm))
 
-(defn init-cm! [{:keys [state ui] :as app-data} id dom-node]
+(defn init-cm! [{:keys [state ui] :as app-data} id i dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id))
   (go
-    (let [src (<p! (-> @state :files first (get-file-contents :text)))]
-      (when (and dom-node (not (aget dom-node "CM")))
-        (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))
+    (let [src (<p! (-> @state :files (nth i) (get-file-contents :text)))]
+      (when dom-node
+        (let [cm (aget dom-node "CM")]
+          (if cm
+            (.refresh cm)
+            (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))))
 
 (defn launch-window! [ui id]
   (let [win (js/window.open load-mode-qs (str "window-" id))]
@@ -330,25 +333,51 @@
   [:div "Upload a zip file"
    [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
+(defn component-filename [names i tab-index]
+  (let [active (= i @tab-index)
+        n (nth @names i)]
+    [:li {:class (when active "active") :on-click #(reset! tab-index i)}
+     (if active
+       [:input {:key i
+                :value n
+                :style {:width (str (inc (.-length (or n ""))) "ch")}
+                :on-change (fn [ev] (swap! names assoc-in [i] (-> ev .-target .-value)))}]
+       [:span n])]))
+
+(defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
+  [:div.editor
+   {:style {:display (if (= i @tab-index) "block" "none")}
+    :ref (partial init-cm! app-data (@state :app) i)}])
+
 (defn component-editor [{:keys [state ui] :as app-data}]
-  [:section#editor.screen
-   [:ul#file-menu
-    [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
-    [:li [:a {:href "#" :on-click (partial save-file! app-data (@state :app))} "save"]]
-    [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data (@state :app))} "delete"]]
-    [:li (if (-> @ui :windows (get (@state :app)))
-           [:span "(opened)"]
-           [:a {:href "#" :on-click (partial open-app! app-data (@state :app))} "open"])]]
-   [:ul#files
-    (doall (for [f (@state :files)]
-             [:li.active {:key (.-name f)} (.-name f)]))
-    [:li.file-select [:input {:type "file"
-                              :name "add-file"
-                              :accept "image/*,application/json,text/*,text/plain,application/javascript"
-                              :on-change (partial add-file! app-data)}] [:label "+"]]]
-   [:div
-    (doall (for [f (@state :files)]
-             [:div.editor {:key (.-name f) :ref (partial init-cm! app-data (@state :app))}]))]])
+  (let [files (r/cursor state [:files])
+        names (r/atom (vec (map #(.-name %) @files)))
+        tab-index (r/atom 0)
+        file-count (range (count (@state :files)))
+        app-id (@state :app)]
+    [:section#editor.screen
+     [:ul#file-menu
+      [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
+      [:li [:a {:href "#" :on-click (partial save-file! app-data app-id)} "save"]]
+      [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id)} "delete"]]
+      [:li (if (-> @ui :windows (get app-id))
+             [:span "(opened)"]
+             [:a {:href "#" :on-click (partial open-app! app-data app-id)} "open"])]]
+     [:ul#files
+      (doall (for [i file-count]
+               (let [f (nth (@state :files) i)]
+                 (with-meta
+                   [component-filename names i tab-index]
+                   {:key (.-name f)}))))
+      [:li.file-select [:input {:type "file"
+                                :name "add-file"
+                                :accept "image/*,application/json,text/*,text/plain,application/javascript"
+                                :on-change (partial add-file! app-data)}] [:label "+"]]]
+     [:div
+      (doall (for [i file-count]
+               (let [f (nth (@state :files) i)]
+                 [:div {:key (.-name f)}
+                  [component-codemirror-block app-data f i tab-index]])))]]))
 
 (defn component-list-app [{:keys [state ui] :as app-data} id app]
   [:div.app
