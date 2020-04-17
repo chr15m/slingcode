@@ -72,6 +72,14 @@ button:hover {
   color: #666;
 }
 
+input[type=file] {
+  opacity: 0;
+  float: right;
+  position: absolute;
+  max-width: 90%;
+  font-size: 0.75em;
+}
+
 section#header p {
   margin-left: 1em;
 }
@@ -414,14 +422,6 @@ button#add-app {
   color: #232a25;
 }
 
-#add-menu input[type=file] {
-  opacity: 0;
-  float: right;
-  position: absolute;
-  max-width: 90%;
-  font-size: 0.75em;
-}
-
 /*** editor ***/
 
 section#editor #file-menu {
@@ -463,6 +463,7 @@ section#editor ul#files li {
   border-top-right-radius: 5px;
   display: inline-block;
   margin-bottom: -2px;
+  cursor: pointer;
 }
 
 section#editor ul#files li.active {
@@ -477,6 +478,14 @@ section#editor ul#files li a {
 div.editor > div {
   height: 100%;
 }
+
+section#editor .file-select input {
+  max-width: 3em;
+  margin-left: -1em;
+  cursor: pointer;
+}
+
+/*** Code mirror ***/
 
 .CodeMirror {
   background: none !important;

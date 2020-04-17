@@ -75,7 +75,7 @@
                                            :title title
                                            :description description
                                            :tags (js->clj tags)
-                                           :files files}}]
+                                           :files (vec files)}}]
                                  app)))
                            store-keys))
           result-chans (when app-chans (async/map merge app-chans))
@@ -276,7 +276,7 @@
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
   (.preventDefault ev)
   (go
-    (let [files (or files (<p! (.getItem store (str "app/" id))))]
+    (let [files (vec (or files (<p! (.getItem store (str "app/" id)))))]
       (swap! state assoc :mode :edit :app id :files files))))
 
 (defn close-editor! [state ev]
@@ -319,6 +319,11 @@
           (<! (add-apps! state store apps))
           (swap! state dissoc :mode :edit)))))
 
+(defn add-file! [{:keys [state store ui] :as app-data} ev]
+  (.preventDefault ev)
+  (let [files (js/Array.from (-> ev .-target .-files))]
+    (swap! state update-in [:files] conj (first files))))
+
 ; ***** views ***** ;
 
 (defn component-upload [{:keys [state ui] :as app-data}]
@@ -337,7 +342,10 @@
    [:ul#files
     (doall (for [f (@state :files)]
              [:li.active {:key (.-name f)} (.-name f)]))
-    [:li [:a {:href "#" :on-click (fn [ev] (.preventDefault ev) (js/alert "Coming soon."))} "+"]]]
+    [:li.file-select [:input {:type "file"
+                              :name "add-file"
+                              :accept "image/*,application/json,text/*,text/plain,application/javascript"
+                              :on-change (partial add-file! app-data)}] [:label "+"]]]
    [:div
     (doall (for [f (@state :files)]
              [:div.editor {:key (.-name f) :ref (partial init-cm! app-data (@state :app))}]))]])
@@ -416,7 +424,7 @@
               [:div#add-menu
                [:ul
                 [:li [:a {:href "#" :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))} "New app"]]
-                [:li [:input {:type "file" :name "upload-zip" :accept "application/zip" :on-change (partial initiate-zip-upload! app-data)}] [:label "From zip"]]]])
+                [:li.file-select [:input {:type "file" :name "upload-zip" :accept "application/zip" :on-change (partial initiate-zip-upload! app-data)}] [:label "From zip"]]]])
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
