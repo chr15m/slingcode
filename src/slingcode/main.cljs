@@ -358,9 +358,9 @@
      [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
      [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
     [:div.column
-     [:a.title  {:href (js/window.URL.createObjectURL (get (app :files) 0))
-                 :on-click (partial open-app! app-data id)
-                 :target (str "window-" id)}
+     [:a.title {:href (js/window.URL.createObjectURL (get (app :files) 0))
+                :on-click (partial open-app! app-data id)
+                :target (str "window-" id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
      [:p (app :description)]
      [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]
