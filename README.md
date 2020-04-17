@@ -42,7 +42,7 @@ You can find me online here:
 
 -- Nick Szabo, [Trusted Third Parties are Security Holes](https://nakamotoinstitute.org/trusted-third-parties/)
 
-> "The trick is to fix the problem you have, rather than the problem you want."
+> The trick is to fix the problem you have, rather than the problem you want.
 
 -- Bram Cohen
 
