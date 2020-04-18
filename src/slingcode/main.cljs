@@ -415,13 +415,15 @@
                                 :on-change (partial add-file! app-data)}] [:label "+"]]]
      [:div
       (doall (for [i file-count]
-               (let [file (nth @files i)]
-                 [:div {:key (.-name file)}
-                  (js/console.log (.-type file) (.-name file))
+               (let [file (nth @files i)
+                     filename (.-name file)
+                     content-type (or (.-type file) (mime-types/lookup filename))]
+                 [:div {:key filename}
+                  (js/console.log content-type filename)
                   (cond
-                    (= (.indexOf (.-type file) "text/") 0) [component-codemirror-block app-data file i tab-index]
-                    (= (.indexOf (.-type file) "image/") 0) (when (= i @tab-index) [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
-                    :else (when (= i @tab-index) [:div.file-content "Sorry, I don't know how to show this type of file."]))])))]]))
+                    (= (.indexOf (.-type file) "image/") 0) (when (= i @tab-index)
+                                                              [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
+                    :else [component-codemirror-block app-data file i tab-index])])))]]))
 
 (defn component-list-app [{:keys [state ui] :as app-data} id app]
   [:div.app
