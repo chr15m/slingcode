@@ -409,10 +409,11 @@
                  (with-meta
                    [component-filename files i tab-index]
                    {:key (.-name f)}))))
-      [:li.file-select [:input {:type "file"
-                                :name "add-file"
-                                :accept "image/*,text/*,application/json,application/javascript"
-                                :on-change (partial add-file! app-data)}] [:label "+"]]]
+      (when (< (count @files) 5)
+        [:li.file-select [:input {:type "file"
+                                  :name "add-file"
+                                  :accept "image/*,text/*,application/json,application/javascript"
+                                  :on-change (partial add-file! app-data)}] [:label "+"]])]
      [:div
       (doall (for [i file-count]
                (let [file (nth @files i)
