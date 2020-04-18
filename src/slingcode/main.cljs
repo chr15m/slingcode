@@ -177,7 +177,7 @@
 (defn init-cm! [{:keys [state ui] :as app-data} id i dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id))
   (go
-    (let [src (<p! (-> @state :files (nth i) (get-file-contents :text)))]
+    (let [src (<p! (-> @state :editing :files (nth i) (get-file-contents :text)))]
       (when dom-node
         (let [cm (aget dom-node "CM")]
           (if cm
@@ -280,11 +280,11 @@
   (.preventDefault ev)
   (go
     (let [files (vec (or files (<p! (.getItem store (str "app/" id)))))]
-      (swap! state assoc :mode :edit :app id :files files))))
+      (swap! state assoc :mode :edit :editing {:id id :files files :tab-index 0}))))
 
 (defn close-editor! [state ev]
   (.preventDefault ev)
-  (swap! state dissoc :mode :app :files))
+  (swap! state dissoc :mode :editing))
 
 (defn save-file! [{:keys [state ui] :as app-data} id ev]
   (.preventDefault ev)
@@ -325,7 +325,7 @@
 (defn add-file! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))]
-    (swap! state update-in [:files] conj (first files))))
+    (swap! state update-in [:editing :files] conj (first files))))
 
 ; ***** views ***** ;
 
@@ -347,14 +347,14 @@
 (defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
   [:div.editor
    {:style {:display (if (= i @tab-index) "block" "none")}
-    :ref (partial init-cm! app-data (@state :app) i)}])
+    :ref (partial init-cm! app-data (-> @state :editing :id) i)}])
 
 (defn component-editor [{:keys [state ui] :as app-data}]
-  (let [files (r/cursor state [:files])
+  (let [files (r/cursor state [:editing :files])
         names (r/atom (vec (map #(.-name %) @files)))
         tab-index (r/atom 0)
-        file-count (range (count (@state :files)))
-        app-id (@state :app)]
+        file-count (range (count @files))
+        app-id (-> @state :editing :id)]
     [:section#editor.screen
      [:ul#file-menu
       [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
@@ -365,7 +365,7 @@
              [:a {:href "#" :on-click (partial open-app! app-data app-id)} "open"])]]
      [:ul#files
       (doall (for [i file-count]
-               (let [f (nth (@state :files) i)]
+               (let [f (nth @files i)]
                  (with-meta
                    [component-filename names i tab-index]
                    {:key (.-name f)}))))
@@ -375,7 +375,7 @@
                                 :on-change (partial add-file! app-data)}] [:label "+"]]]
      [:div
       (doall (for [i file-count]
-               (let [f (nth (@state :files) i)]
+               (let [f (nth @files i)]
                  [:div {:key (.-name f)}
                   [component-codemirror-block app-data f i tab-index]])))]]))
 
