@@ -107,6 +107,12 @@
             zipfile (js/File. (clj->js [zip-blob]) (str slug ".zip") #js {:type "application/zip"})]
         zipfile))))
 
+(defn get-valid-type [file]
+  (let [t (.-type file)]
+    (if (or (not t) (= t ""))
+      (mime-types/lookup (.-name file))
+      t)))
+
 ; ***** functions ***** ;
 
 (defn adblock-detect! [ui el]
@@ -196,7 +202,7 @@
         (let [cm (aget dom-node "CM")
               cm (if cm
                    (do (.refresh cm) cm)
-                   (aset dom-node "CM" (create-editor! dom-node src (or (.-type file) (mime-types/lookup (.-name file))))))]
+                   (aset dom-node "CM" (create-editor! dom-node src (get-valid-type file))))]
           (swap! state assoc-in [:editing :editors file-index] cm))))))
 
 (defn launch-window! [ui id]
