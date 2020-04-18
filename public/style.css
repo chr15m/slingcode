@@ -260,7 +260,9 @@ section.website blockquote {
 }
 
 section.screen {
-  margin: 7em auto;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 7em;
 }
 
 section#apps {
@@ -469,7 +471,7 @@ section#editor ul#files {
   list-style-type: none;
   border-bottom: 2px solid #999;
   white-space: nowrap;
-  overflow-x: auto;
+  /*overflow-x: auto;*/
 }
 
 section#editor ul#files li {
