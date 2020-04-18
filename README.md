@@ -23,10 +23,6 @@ I'm trying to recreate that magic with Slingcode. To get rid of all the tooling 
 
 I built it so I can teach my kids to code without all the complex setup you need these days. I'm trying to re-create the simple environment I had when I learned to code with my Mum on an Apple IIe back in the 80s.
 
-### Hack & contribute
-
-Slingcode is built with [ClojureScript](https://clojurescript.org/). To get started [check out the codebase](https://github.com/chr15m/slingcode) and run `make`.
-
 ### Who
 
 Hi, 👋 I'm Chris and I made this.
@@ -35,6 +31,10 @@ You can find me online here:
 
 * [@mccrmx](https://twitter.com/mccrmx)
 * [mccormick.cx](https://mccormick.cx/)
+
+### Hack & contribute
+
+Slingcode is built with [ClojureScript](https://clojurescript.org/). To get started contributing to Slingcode itself, [check out the codebase](https://github.com/chr15m/slingcode) and run `make`.
 
 ### Inspiration
 
