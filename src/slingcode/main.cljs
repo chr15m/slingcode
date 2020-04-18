@@ -154,22 +154,22 @@
         )))
 
 (defn save-handler! [{:keys [state ui store] :as app-data} id file-index cm]
-  (let [content (.getValue cm)
+  (let [content (when (and cm (aget cm "getValue")) (.getValue cm))
         files (get-in @state [:editing :files])
         files (vec (map-indexed (fn [i f]
-                                  (if (= @file-index i)
+                                  (if (and (= @file-index i) content)
                                     (js/File. #js [content] (.-name f) {:type (.-type f)})
                                     f))
-                                files))
-        dom (.parseFromString dom-parser content "text/html")
-        title (.querySelector dom "title")
-        title (if title (.-textContent title) "Untitled app")]
+                                files))]
     (go
       ; TODO: catch exception and warn if disk full
       (<p! (.setItem store (str "app/" id) (clj->js files)))
       (swap! state assoc :apps (<! (get-apps-data store)))
-      (if (= (.-name (nth files @file-index)) "index.html")
-        (update-window-content! app-data files title id)))))
+      (when (= (.-name (nth files @file-index)) "index.html")
+        (let [dom (.parseFromString dom-parser content "text/html")
+              title (.querySelector dom "title")
+              title (if title (.-textContent title) "Untitled app")] 
+          (update-window-content! app-data files title id))))))
 
 (defn create-editor! [dom-node src]
   (let [cm (CodeMirror
@@ -345,8 +345,18 @@
 
 (defn add-file! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
-  (let [files (js/Array.from (-> ev .-target .-files))]
-    (swap! state update-in [:editing :files] conj (first files))))
+  (let [files (js/Array.from (-> ev .-target .-files))
+        file (first files)
+        file (if (.-type file)
+               file
+               (js/File. #js [file] (.-name file) {:type (mime-types/lookup (.-name file))}))]
+    (swap! state
+           #(-> %
+                (update-in [:editing :files] conj (first files))
+                (assoc-in [:editing :tab-index] (count (get-in % [:editing :files]))))))
+  (let [app-id (get-in @state [:editing :id])
+        tab-index (r/cursor state [:editing :tab-index])]
+    (save-handler! app-data app-id tab-index ev)))
 
 ; ***** views ***** ;
 
@@ -405,9 +415,13 @@
                                 :on-change (partial add-file! app-data)}] [:label "+"]]]
      [:div
       (doall (for [i file-count]
-               (let [f (nth @files i)]
-                 [:div {:key (.-name f)}
-                  [component-codemirror-block app-data f i tab-index]])))]]))
+               (let [file (nth @files i)]
+                 [:div {:key (.-name file)}
+                  (js/console.log (.-type file) (.-name file))
+                  (cond
+                    (= (.indexOf (.-type file) "text/") 0) [component-codemirror-block app-data file i tab-index]
+                    (= (.indexOf (.-type file) "image/") 0) (when (= i @tab-index) [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
+                    :else (when (= i @tab-index) [:div.file-content "Sorry, I don't know how to show this type of file."]))])))]]))
 
 (defn component-list-app [{:keys [state ui] :as app-data} id app]
   [:div.app
