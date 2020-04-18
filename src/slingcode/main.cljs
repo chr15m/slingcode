@@ -362,7 +362,7 @@
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
         names (r/atom (vec (map #(.-name %) @files)))
-        tab-index (r/atom 0)
+        tab-index (r/cursor state [:editing :tab-index])
         file-count (range (count @files))
         app-id (-> @state :editing :id)]
     [:section#editor.screen
