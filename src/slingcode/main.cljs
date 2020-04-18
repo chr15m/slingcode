@@ -150,17 +150,23 @@
         ;(.addEventListener (.-document win) "DOMContentLoaded" (fn [ev] (print "dom content loaded")))
         )))
 
-(defn save-handler! [{:keys [state ui store] :as app-data} id cm]
+(defn save-handler! [{:keys [state ui store] :as app-data} id file-index cm]
   (let [content (.getValue cm)
-        files [(js/File. #js [content] "index.html" #js {:type "text/html"})]
+        files (get-in @state [:editing :files])
+        files (vec (map-indexed (fn [i f]
+                                  (if (= @file-index i)
+                                    (js/File. #js [content] (.-name f) {:type (.-type f)})
+                                    f))
+                                files))
         dom (.parseFromString dom-parser content "text/html")
         title (.querySelector dom "title")
         title (if title (.-textContent title) "Untitled app")]
     (go
-      (update-window-content! app-data files title id)
       ; TODO: catch exception and warn if disk full
       (<p! (.setItem store (str "app/" id) (clj->js files)))
-      (swap! state assoc :apps (<! (get-apps-data store))))))
+      (swap! state assoc :apps (<! (get-apps-data store)))
+      (if (= (.-name (nth files @file-index)) "index.html")
+        (update-window-content! app-data files title id)))))
 
 (defn create-editor! [dom-node src]
   (let [cm (CodeMirror
@@ -174,16 +180,16 @@
                   :mode "htmlmixed"})]
     cm))
 
-(defn init-cm! [{:keys [state ui] :as app-data} id i dom-node]
-  (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id))
+(defn init-cm! [{:keys [state ui] :as app-data} id file-index tab-index dom-node]
+  (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id tab-index))
   (go
-    (let [src (<p! (-> @state :editing :files (nth i) (get-file-contents :text)))]
+    (let [src (<p! (-> @state :editing :files (nth file-index) (get-file-contents :text)))]
       (when dom-node
         (let [cm (aget dom-node "CM")
               cm (if cm
                    (do (.refresh cm) cm)
                    (aset dom-node "CM" (create-editor! dom-node src)))]
-          (swap! state assoc-in [:editing :editors i] cm))))))
+          (swap! state assoc-in [:editing :editors file-index] cm))))))
 
 (defn launch-window! [ui id]
   (let [win (js/window.open load-mode-qs (str "window-" id))]
@@ -298,7 +304,7 @@
 (defn save-file! [{:keys [state ui] :as app-data} tab-index app-id ev]
   (.preventDefault ev)
   (let [cm (get-in @state [:editing :editors @tab-index])]
-    (save-handler! app-data app-id cm)))
+    (save-handler! app-data app-id tab-index cm)))
 
 (defn delete-file! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
@@ -360,7 +366,7 @@
 (defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
   [:div.editor
    {:style {:display (if (= i @tab-index) "block" "none")}
-    :ref (partial init-cm! app-data (-> @state :editing :id) i)}])
+    :ref (partial init-cm! app-data (-> @state :editing :id) i tab-index)}])
 
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
