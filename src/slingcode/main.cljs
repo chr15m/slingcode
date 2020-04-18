@@ -158,7 +158,7 @@
         files (get-in @state [:editing :files])
         files (vec (map-indexed (fn [i f]
                                   (if (and (= @file-index i) content)
-                                    (js/File. #js [content] (.-name f) {:type (.-type f)})
+                                    (js/File. #js [content] (.-name f) #js {:type (get-valid-type f)})
                                     f))
                                 files))]
     (go
