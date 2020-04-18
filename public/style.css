@@ -119,16 +119,14 @@ nav {
   color: #eee;
 }
 
-.warning {
+.message-wrapper {
   width: 100%;
   position: fixed;
-  top: 1em;
+  top: 2em;
 }
 
-.warning .message {
+.message-wrapper .message {
   background-color: #232a25;
-  color: #C64438;
-  border: 2px solid #C64438;
   border-radius: 5px;
   width: 800px;
   max-width: 100%;
@@ -136,10 +134,27 @@ nav {
   padding: 1em;
 }
 
-.warning .message svg {
-  fill: #C64438;
+.message-wrapper .message svg {
   float: right;
   cursor: pointer;
+}
+
+.warning .message {
+  color: #C64438;
+  border: 2px solid #C64438;
+}
+
+.warning .message svg {
+  fill: #C64438;
+}
+
+.success .message {
+  color: #31D584;
+  border: 2px solid #31D584;
+}
+
+.success .message svg {
+  fill: #31D584;
 }
 
 /*** website markdown ***/

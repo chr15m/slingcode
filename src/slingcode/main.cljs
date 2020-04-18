@@ -206,16 +206,18 @@
                      (in (v :description) search)))
                apps))))
 
-(defn add-apps! [state store default-apps]
+(defn add-apps! [state store apps-to-add]
   ; TODO: some kind of validation that this
   ; infact contains a reasonable web app
   (go
     (let [store-chans (map (fn [[n files]]
-                             (js/console.log "Adding" n files)
-                             (go (<p! (.setItem store (str "app/" (str (random-uuid))) (clj->js files)))))
-                           default-apps)
-          store-results (<! (async/map concat store-chans))]
-      (swap! state assoc :apps (<! (get-apps-data store))))))
+                             (js/console.log "Adding" n (clj->js files))
+                             (go (let [id (str (random-uuid))]
+                                   {id {:files (<p! (.setItem store (str "app/" id) (clj->js files)))}})))
+                           apps-to-add)
+          store-results (<! (async/map merge store-chans))]
+      (swap! state assoc :apps (<! (get-apps-data store)))
+      store-results)))
 
 (defn zip-parse-extract-valid-dir-and-file
   [path & [file]]
@@ -228,13 +230,18 @@
     (let [[folder filename] (zip-parse-extract-valid-dir-and-file (.-name file))
           zipped-file-blob (<p! (.async file "blob"))
           mime-type (or (mime-types/lookup filename) "application/octet-stream")]
-      {folder [(js/File. (clj->js [zipped-file-blob]) filename (clj->js {:type (or (mime-types/lookup filename) "application/octet-stream")}))]})))
+      {folder [(js/File. (clj->js [zipped-file-blob])
+                         filename
+                         (clj->js {:type (or (mime-types/lookup filename) "application/octet-stream")}))]})))
 
 (defn zip-extract [zip]
   (go
     (let [zipped-files (.filter zip zip-parse-extract-valid-dir-and-file)
           zipped-file-chans (map zip-parse-extract-file zipped-files)
-          zipped-file-contents (<! (async/map (fn [& results] (apply merge-with (concat [into] results))) zipped-file-chans))]
+          zipped-file-contents (<! (async/map
+                                     (fn [& results]
+                                       (apply merge-with (concat [into] results)))
+                                     zipped-file-chans))]
       zipped-file-contents)))
 
 (defn zip-parse-base64 [base64-blob]
@@ -273,7 +280,8 @@
     ; let the user know the window was blocked from opening
     (js/setTimeout
       (fn [] (when (aget win "closed")
-               (swap! state assoc :warning "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh.")))
+               (swap! state assoc :message {:level :warning
+                                            :text "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh."})))
       250)))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
@@ -317,10 +325,12 @@
   (let [files (js/Array.from (-> ev .-target .-files))]
     (go (let [apps (<! (zip-parse-file (first files)))]
           ; TODO: some kind of interaction to tell the user what is in the file
-          (js/console.log files)
-          (js/console.log (clj->js apps))
-          (<! (add-apps! state store apps))
-          (swap! state dissoc :mode :edit)))))
+          (let [added-apps (<! (add-apps! state store apps))]
+            (if (= (count added-apps) 1)
+              (edit-app! app-data (first (first added-apps)) nil ev)
+              (swap! state assoc
+                     :message {:level :success :text (str "Added " (count added-apps) " apps.")}
+                     :add-menu nil)))))))
 
 (defn add-file! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
@@ -423,8 +433,10 @@
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
 
-     (when (@state :warning)
-       [:div.warning [:div.message {:on-click (fn [ev] (.preventDefault ev) (swap! state dissoc :warning))} [component-icon :times] (@state :warning)]])
+     (when (@state :message)
+       [:div.message-wrapper {:class (name (-> @state :message :level))}
+        [:div.message {:on-click (fn [ev] (.preventDefault ev) (swap! state dissoc :message))}
+         [component-icon :times] (-> @state :message :text)]])
 
      #_ (when (@ui :adblocked)
        [:pre.warning [:div.message "Adblocked."]])
