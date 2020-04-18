@@ -171,27 +171,32 @@
               title (if title (.-textContent title) "Untitled app")] 
           (update-window-content! app-data files title id))))))
 
-(defn create-editor! [dom-node src]
-  (let [cm (CodeMirror
+(defn create-editor! [dom-node src content-type]
+  (let [config {:lineNumbers true
+                :matchBrackets true
+                ;:autofocus true
+                :value (or src "")
+                :theme "erlang-dark"
+                :autoCloseBrackets true
+                :mode "text/plain"}
+        config (if (= content-type "text/html")
+                 (assoc config :mode "htmlmixed")
+                 config)
+        cm (CodeMirror
              dom-node
-             #js {:lineNumbers true
-                  :matchBrackets true
-                  ;:autofocus true
-                  :value (or src "")
-                  :theme "erlang-dark"
-                  :autoCloseBrackets true
-                  :mode "htmlmixed"})]
+             (clj->js config))]
     cm))
 
 (defn init-cm! [{:keys [state ui] :as app-data} id file-index tab-index dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id tab-index))
   (go
-    (let [src (<p! (-> @state :editing :files (nth file-index) (get-file-contents :text)))]
+    (let [file (-> @state :editing :files (nth file-index))
+          src (<p! (get-file-contents file :text))]
       (when dom-node
         (let [cm (aget dom-node "CM")
               cm (if cm
                    (do (.refresh cm) cm)
-                   (aset dom-node "CM" (create-editor! dom-node src)))]
+                   (aset dom-node "CM" (create-editor! dom-node src (or (.-type file) (mime-types/lookup (.-name file))))))]
           (swap! state assoc-in [:editing :editors file-index] cm))))))
 
 (defn launch-window! [ui id]
