@@ -354,12 +354,12 @@
   [:div "Upload a zip file"
    [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
-(defn component-filename [names i tab-index]
+(defn component-filename [names file i tab-index]
   (let [active (= i @tab-index)
         n (nth @names i)]
     [:li {:class (when active "active")
           :on-click #(reset! tab-index i)}
-     (if active
+     (if (and (not= (.-name file) "index.html") active)
        [:input {:key i
                 :value n
                 :style {:width (str (inc (.-length (or n ""))) "ch")}
@@ -389,7 +389,7 @@
       (doall (for [i file-count]
                (let [f (nth @files i)]
                  (with-meta
-                   [component-filename names i tab-index]
+                   [component-filename names f i tab-index]
                    {:key (.-name f)}))))
       [:li.file-select [:input {:type "file"
                                 :name "add-file"
