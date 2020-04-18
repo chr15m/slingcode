@@ -39,6 +39,9 @@
   (let [id (.pop (.split store-key "/"))]
     (when (.match id re-uuid) [id store-key])))
 
+(defn get-index-file [files]
+  (first (filter #(= (.-name %) "index.html") files)))
+
 (defn get-file-contents [file result-type]
   "Wrapper hack to support older Chrome."
   (if file
@@ -61,7 +64,7 @@
                       (map (fn [[id store-key]]
                              (go
                                (let [files (<p! (.getItem store store-key))
-                                     index-html (get files 0)
+                                     index-html (get-index-file files)
                                      src (<p! (get-file-contents index-html :text))
                                      dom (.parseFromString dom-parser src "text/html")
                                      title (.querySelector dom "title")
@@ -141,7 +144,7 @@
         ;(-> win .-location (.replace (js/window.URL.createObjectURL (get files 0))))
         (let [frame (-> win .-document (.getElementById "result"))
               title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
-              file (if files (get files 0) (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
+              file (if files (get-index-file files) (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
           (aset frame "src" (js/window.URL.createObjectURL file))
           (aset title-element "textContent" (or title "Untitled app")))
         (print "window after updating content")
@@ -406,7 +409,7 @@
      [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
      [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
     [:div.column
-     [:a.title {:href (js/window.URL.createObjectURL (get (app :files) 0))
+     [:a.title {:href (js/window.URL.createObjectURL (get-index-file (app :files)))
                 :on-click (partial open-app! app-data id)
                 :target (str "window-" id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
