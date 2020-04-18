@@ -174,15 +174,16 @@
                   :mode "htmlmixed"})]
     cm))
 
-(defn init-cm! [{:keys [state ui] :as app-data} id i dom-node]
+(defn init-cm! [{:keys [state ui] :as app-data} editors id i dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id))
   (go
     (let [src (<p! (-> @state :editing :files (nth i) (get-file-contents :text)))]
       (when dom-node
-        (let [cm (aget dom-node "CM")]
-          (if cm
-            (.refresh cm)
-            (swap! ui assoc :editor (aset dom-node "CM" (create-editor! dom-node src)))))))))
+        (let [cm (aget dom-node "CM")
+              cm (if cm
+                   (do (.refresh cm) cm)
+                   (aset dom-node "CM" (create-editor! dom-node src)))]
+          (swap! editors assoc i cm))))))
 
 (defn launch-window! [ui id]
   (let [win (js/window.open load-mode-qs (str "window-" id))]
@@ -294,9 +295,9 @@
   (.preventDefault ev)
   (swap! state dissoc :mode :editing))
 
-(defn save-file! [{:keys [state ui] :as app-data} id ev]
+(defn save-file! [{:keys [state ui] :as app-data} editors tab-index app-id ev]
   (.preventDefault ev)
-  (save-handler! app-data id (@ui :editor)))
+  (save-handler! app-data app-id (get @editors @tab-index)))
 
 (defn delete-file! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
@@ -346,7 +347,8 @@
 (defn component-filename [names i tab-index]
   (let [active (= i @tab-index)
         n (nth @names i)]
-    [:li {:class (when active "active") :on-click #(reset! tab-index i)}
+    [:li {:class (when active "active")
+          :on-click #(reset! tab-index i)}
      (if active
        [:input {:key i
                 :value n
@@ -354,21 +356,22 @@
                 :on-change (fn [ev] (swap! names assoc-in [i] (-> ev .-target .-value)))}]
        [:span n])]))
 
-(defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
+(defn component-codemirror-block [{:keys [state ui] :as app-data} editors f i tab-index]
   [:div.editor
    {:style {:display (if (= i @tab-index) "block" "none")}
-    :ref (partial init-cm! app-data (-> @state :editing :id) i)}])
+    :ref (partial init-cm! app-data editors (-> @state :editing :id) i)}])
 
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
         names (r/atom (vec (map #(.-name %) @files)))
         tab-index (r/cursor state [:editing :tab-index])
         file-count (range (count @files))
+        editors (r/atom {})
         app-id (-> @state :editing :id)]
     [:section#editor.screen
      [:ul#file-menu
       [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
-      [:li [:a {:href "#" :on-click (partial save-file! app-data app-id)} "save"]]
+      [:li [:a {:href "#" :on-click (partial save-file! app-data editors tab-index app-id)} "save"]]
       [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id)} "delete"]]
       [:li (if (-> @ui :windows (get app-id))
              [:span "(opened)"]
@@ -387,7 +390,7 @@
       (doall (for [i file-count]
                (let [f (nth @files i)]
                  [:div {:key (.-name f)}
-                  [component-codemirror-block app-data f i tab-index]])))]]))
+                  [component-codemirror-block app-data editors f i tab-index]])))]]))
 
 (defn component-list-app [{:keys [state ui] :as app-data} id app]
   [:div.app
