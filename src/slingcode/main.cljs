@@ -354,17 +354,25 @@
   [:div "Upload a zip file"
    [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
-(defn component-filename [names file i tab-index]
+(defn component-filename [files i tab-index]
   (let [active (= i @tab-index)
-        n (nth @names i)]
+        file (nth @files i)
+        n (.-name file)]
     [:li {:class (when active "active")
           :on-click #(reset! tab-index i)}
-     (if (and (not= (.-name file) "index.html") active)
-       [:input {:key i
-                :value n
-                :style {:width (str (inc (.-length (or n ""))) "ch")}
-                :on-change (fn [ev] (swap! names assoc-in [i] (-> ev .-target .-value)))}]
-       [:span n])]))
+     [:span n]
+     (comment
+       "removing this renaming mechanism until i figure out
+       a better data flow for it. probably just need a
+       saner ui." (if (and (not= (.-name file) "index.html") active)
+                    [:input {:key i
+                             :value n
+                             :style {:width (str (inc (.-length (or n ""))) "ch")}
+                             :on-change (fn [ev]
+                                          (print "new" (-> ev .-target .-value))
+                                          ;(swap! names assoc-in [i] (-> ev .-target .-value))
+                                          (swap! files assoc-in [i] (js/File. #js [file] (-> ev .-target .-value) {:type (.-type file)})))}]
+                    [:span n]))]))
 
 (defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
   [:div.editor
@@ -373,7 +381,7 @@
 
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
-        names (r/atom (vec (map #(.-name %) @files)))
+        ;names (r/atom (vec (map #(.-name %) @files)))
         tab-index (r/cursor state [:editing :tab-index])
         file-count (range (count @files))
         app-id (-> @state :editing :id)]
@@ -389,7 +397,7 @@
       (doall (for [i file-count]
                (let [f (nth @files i)]
                  (with-meta
-                   [component-filename names f i tab-index]
+                   [component-filename files i tab-index]
                    {:key (.-name f)}))))
       [:li.file-select [:input {:type "file"
                                 :name "add-file"
