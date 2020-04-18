@@ -384,7 +384,7 @@
                    {:key (.-name f)}))))
       [:li.file-select [:input {:type "file"
                                 :name "add-file"
-                                :accept "image/*,application/json,text/*,text/plain,application/javascript"
+                                :accept "image/*,text/*,application/json,application/javascript"
                                 :on-change (partial add-file! app-data)}] [:label "+"]]]
      [:div
       (doall (for [i file-count]
