@@ -435,7 +435,7 @@
     [:li [:a {:href "https://twitter.com/mccrmx"} "@mccrmx"]]
     [:li [:a {:href "https://mccormick.cx"} "mccormick.cx"]]]
    [:p.light "Revision: " revision]
-   [:p [:a {:href "https://slingcode.net/"} "slingcode.net"]]
+   [:p [:a {:href "https://slingcode.net/" :target "_blank"} "slingcode.net"]]
    [:button {:on-click (partial toggle-about-screen! state)} "Ok"]])
 
 (defn component-main [{:keys [state ui] :as app-data}]
