@@ -456,13 +456,39 @@ section#editor #file-menu {
 }
 
 section#editor #file-menu li {
-  display: inline-block;
   margin-left: 1em;
-  color: #eee;
+  color: #e5b413;
 }
 
 section#editor #file-menu li a {
   color: #aaa;
+}
+
+section#editor #file-menu li.topmenu {
+  display: inline-block;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+section#editor #file-menu li.topmenu > ul {
+  display: none;
+  z-index: 1000;
+}
+
+section#editor #file-menu li.topmenu > ul li {
+  margin: 0.25em 0.25em;
+  padding: 0em;
+}
+
+section#editor #file-menu li.topmenu.open > ul {
+  display: block;
+  position: absolute;
+  background-color: #232a25;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border: 2px solid #999;
+  padding: 0.5em;
+  list-style-type: none;
 }
 
 section#editor ul#files {

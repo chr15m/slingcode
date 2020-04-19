@@ -401,20 +401,31 @@
    {:style {:display (if (= i @tab-index) "block" "none")}
     :ref (partial init-cm! app-data (-> @state :editing :id) i tab-index)}])
 
+(defn dropdown-menu-state [menu-state id]
+  {:class (if (= @menu-state id) "open")
+   :on-click #(swap! menu-state (fn [old-state] (if (= old-state id) nil id)))})
+
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
         ;names (r/atom (vec (map #(.-name %) @files)))
         tab-index (r/cursor state [:editing :tab-index])
+        menu-state (r/cursor state [:editing :menu-state])
         file-count (range (count @files))
         app-id (-> @state :editing :id)]
     [:section#editor.screen
-     [:ul#file-menu
-      [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]
-      [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "save"]]
-      [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id)} "delete"]]
-      [:li (if (-> @ui :windows (get app-id))
-             [:span "(opened)"]
-             [:a {:href "#" :on-click (partial open-app! app-data app-id)} "open"])]]
+     [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
+      [:li.topmenu (dropdown-menu-state menu-state :app) "App"
+       [:ul
+        [:li (if (-> @ui :windows (get app-id))
+               [:span "(launched)"]
+               [:a {:href "#" :on-click (partial open-app! app-data app-id)} "launch"])]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id)} "delete"]]
+        [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]]]
+      [:li.topmenu (dropdown-menu-state menu-state :file) "File"
+       [:ul
+        [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "save"]]
+        ; [:li [:a.color-warn {:href "#"} "rename"]]
+        [:li [:a.color-warn {:href "#" :on-click #(js/alert "Implement me.")} "delete"]]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)]
