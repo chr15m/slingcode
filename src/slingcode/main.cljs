@@ -109,10 +109,12 @@
         zipfile))))
 
 (defn get-valid-type [file]
-  (let [t (.-type file)]
-    (if (or (not t) (= t ""))
-      (mime-types/lookup (.-name file))
-      t)))
+  (or
+    (let [t (.-type file)]
+      (if (or (not t) (= t ""))
+        (mime-types/lookup (.-name file))
+        t))
+    "application/octet-stream"))
 
 ; ***** functions ***** ;
 
@@ -175,7 +177,7 @@
       (when (= (.-name (nth files @file-index)) "index.html")
         (let [dom (.parseFromString dom-parser content "text/html")
               title (.querySelector dom "title")
-              title (if title (.-textContent title) "Untitled app")] 
+              title (if title (.-textContent title) "Untitled app")]
           (update-window-content! app-data files title id))))))
 
 (defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
@@ -207,16 +209,20 @@
     cm))
 
 (defn init-cm! [{:keys [state ui] :as app-data} id file-index tab-index dom-node]
+  ; TODO: this function is called way more times than it needs to be - optimise
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id tab-index))
   (go
-    (let [file (-> @state :editing :files (nth file-index))
-          src (<p! (get-file-contents file :text))]
-      (when dom-node
-        (let [cm (aget dom-node "CM")
-              cm (if cm
-                   (do (.refresh cm) cm)
-                   (aset dom-node "CM" (create-editor! dom-node src (get-valid-type file))))]
-          (swap! state assoc-in [:editing :editors file-index] cm))))))
+    (let [files (-> @state :editing :files)]
+      (if (< file-index (count files))
+        (let [file (nth files file-index)
+              src (<p! (get-file-contents file :text))]
+          (when dom-node
+            (let [cm (aget dom-node "CM")
+                  cm (if cm
+                       (do (.refresh cm) cm)
+                       (aset dom-node "CM" (create-editor! dom-node src (get-valid-type file))))]
+              (swap! state assoc-in [:editing :editors file-index] cm))))
+        (swap! state update-in [:editing :editors] dissoc file-index)))))
 
 (defn launch-window! [ui id]
   (let [win (js/window.open load-mode-qs (str "window-" id))]
@@ -245,7 +251,6 @@
   ; infact contains a reasonable web app
   (go
     (let [store-chans (map (fn [[n files]]
-                             (js/console.log "Adding" n (clj->js files))
                              (go (let [id (str (random-uuid))]
                                    {id {:files (<p! (.setItem store (str "app/" id) (clj->js files)))}})))
                            apps-to-add)
@@ -376,13 +381,24 @@
                      :message {:level :success :text (str "Added " (count added-apps) " apps.")}
                      :add-menu nil)))))))
 
+(defn increment-filename [f]
+  (let [[_ file-part _ increment extension] (.exec #"(.*?)(-([0-9]+)){0,1}(?:\.([^.]+))?$" f)]
+    (str file-part "-" (inc (int increment)) (and extension ".") extension)))
+
+(defn ensure-unique-filename [files file-name]
+  (let [file-names (set (map #(.-name %) files))]
+    (loop [f file-name]
+      (if (contains? file-names f)
+        (recur (increment-filename f))
+        f))))
+
 (defn add-file! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))
         file (first files)
-        file (if (.-type file)
-               file
-               (js/File. #js [file] (.-name file) {:type (mime-types/lookup (.-name file))}))]
+        file-name (ensure-unique-filename (-> @state :editing :files) (.-name file))
+        file-type (get-valid-type file)
+        file (js/File. #js [file] file-name {:type file-type})]
     (swap! state
            #(-> %
                 (update-in [:editing :files] conj file)
@@ -412,9 +428,10 @@
                              :value n
                              :style {:width (str (inc (.-length (or n ""))) "ch")}
                              :on-change (fn [ev]
-                                          (print "new" (-> ev .-target .-value))
-                                          ;(swap! names assoc-in [i] (-> ev .-target .-value))
-                                          (swap! files assoc-in [i] (js/File. #js [file] (-> ev .-target .-value) {:type (.-type file)})))}]
+                                          (swap! files assoc-in [i]
+                                                 (js/File. #js [file]
+                                                           (-> ev .-target .-value)
+                                                           {:type (.-type file)})))}]
                     [:span n]))]))
 
 (defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
@@ -463,11 +480,10 @@
       (doall (for [i file-count]
                (let [file (nth @files i)
                      filename (.-name file)
-                     content-type (or (.-type file) (mime-types/lookup filename))]
+                     content-type (get-valid-type file)]
                  [:div {:key filename}
-                  (js/console.log content-type filename)
                   (cond
-                    (= (.indexOf (.-type file) "image/") 0) (when (= i @tab-index)
+                    (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
                                                               [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
                     :else [component-codemirror-block app-data file i tab-index])])))]]))
 
