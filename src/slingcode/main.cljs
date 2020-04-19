@@ -385,7 +385,7 @@
                (js/File. #js [file] (.-name file) {:type (mime-types/lookup (.-name file))}))]
     (swap! state
            #(-> %
-                (update-in [:editing :files] conj (first files))
+                (update-in [:editing :files] conj file)
                 (assoc-in [:editing :tab-index] (count (get-in % [:editing :files]))))))
   (let [app-id (get-in @state [:editing :id])
         tab-index (r/cursor state [:editing :tab-index])]
