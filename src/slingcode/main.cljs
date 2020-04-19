@@ -187,7 +187,8 @@
       (let [apps (<! (get-apps-data store))]
         (swap! state #(-> %
                           (assoc :apps apps)
-                          (assoc-in [:editing :files] files)))))))
+                          (assoc-in [:editing :files] files)
+                          (assoc-in [:editing :tab-index] (js/Math.max 0 (dec file-index)))))))))
 
 (defn create-editor! [dom-node src content-type]
   (let [config {:lineNumbers true
