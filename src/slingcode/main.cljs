@@ -123,16 +123,8 @@
 (defn attach-unload-event! [ui id win which]
   (.addEventListener win "unload"
                      (fn [ev]
-                       (print "window unload" id which)
-                       (js/console.log "unload window" win)
-                       (js/console.log "unload window closed?" (aget win "closed"))
-                       (js/console.log "unload window skipunload?" (aget win "skipunload"))
-                       (if (nil? (aget win "skipunload"))
-                         (swap! ui update-in [:windows] dissoc id)
-                         (do
-                           (js/setTimeout (fn []
-                                            (attach-unload-event! ui id win)
-                                            (aset win "skipunload" nil)) 100))))))
+                       (js/console.log "unload window" id which win)
+                       (swap! ui update-in [:windows] dissoc id))))
 
 (defn attach-load-event! [ui id win]
   (.addEventListener win "load"
