@@ -342,8 +342,12 @@
 
 (defn delete-file! [{:keys [state ui store] :as app-data} app-id tab-index ev]
   (.preventDefault ev)
-  (when (js/confirm "Are you sure you want to delete this file?")
-    (remove-file! app-data app-id @tab-index)))
+  (let [files (get-in @state [:editing :files])
+        file (nth files @tab-index)]
+    (if (= (.-name file) "index.html")
+      (js/alert "The index.html file can't be deleted.\nDid you mean App->delete instead?")
+      (when (js/confirm "Are you sure you want to delete this file?")
+        (remove-file! app-data app-id @tab-index)))))
 
 (defn download-zip! [{:keys [state ui store] :as app-data} id title ev]
   (.preventDefault ev)
