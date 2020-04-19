@@ -4,6 +4,7 @@
     [cljs.core.async.interop :refer-macros [<p!]]
     [alandipert.storage-atom :refer [local-storage]]
     [reagent.core :as r]
+    [reagent.dom :as rdom]
     [shadow.resource :as rc]
     [slingcode.icons :refer [component-icon]]
     ["jszip" :as JSZip]
@@ -524,13 +525,13 @@
 
 (defn render [app-data]
   (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
-  (r/render [component-main app-data] (js/document.getElementById "app")))
+  (rdom/render [component-main app-data] (js/document.getElementById "app")))
 
 (defn reload! []
   (println "reload!")
   (let [qs (-> js/document .-location .-search)]
     (if (is-view-mode qs)
-      (r/render [component-child-container] (js/document.getElementById "app"))
+      (rdom/render [component-child-container] (js/document.getElementById "app"))
       (go
         (let [store (.createInstance localforage #js {:name "slingcode-apps"})
               stored-apps (<! (get-apps-data store))
