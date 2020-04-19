@@ -30,6 +30,8 @@
 (def logo (rc/inline "slingcode/logo.svg"))
 (def revision (rc/inline "slingcode/revision.txt"))
 (def default-apps-base64-blob (rc/inline "default-apps.zip.b64"))
+(def blocked-message {:level :warning
+                      :text "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh."})
 
 ; ***** data ***** ;
 
@@ -118,12 +120,6 @@
 
 ; ***** functions ***** ;
 
-(defn adblock-detect! [ui el]
-  (when (and el (= (.-offsetHeight el) 0))
-    ;(js/console.log "BLOCKED")
-    (swap! ui assoc :adblocked true)
-    (print "Adblock detection:" (@ui :adblocked))))
-
 (defn attach-unload-event! [ui id win which]
   (.addEventListener win "unload"
                      (fn [ev]
@@ -142,25 +138,17 @@
   (.addEventListener win "load"
                      (fn [ev]
                        (attach-unload-event! ui id win "from-load")
-                       ;(.addEventListener win "beforeunload" (fn [ev] (print "beforeunload")))
                        (print "window load" id))))
 
 (defn update-window-content! [{:keys [state ui store] :as app-data} files title id]
   (let [win (-> @ui :windows (get id))]
     (when win
-        ;(aset win "skipunload" true)
-        ;(.addEventListener win "load" (fn [ev] (print "load catch A")))
-        ;(-> win .-location (.replace (js/window.URL.createObjectURL (get files 0))))
         (let [frame (-> win .-document (.getElementById "result"))
               title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
               file (if files (get-index-file files) (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
           (aset frame "src" (js/window.URL.createObjectURL file))
           (aset title-element "textContent" (or title "Untitled app")))
-        (print "window after updating content")
-        ;(.addEventListener win "load" (fn [ev] (print "load catch B")))
-        ;(js/setTimeout #(.addEventListener win "load" (fn [ev] (print "load catch D"))) 3)
-        ;(.addEventListener (.-document win) "DOMContentLoaded" (fn [ev] (print "dom content loaded")))
-        )))
+        (print "window after updating content"))))
 
 (defn save-handler! [{:keys [state ui store] :as app-data} id file-index cm]
   (let [content (when (and cm (aget cm "getValue")) (.getValue cm))
@@ -227,13 +215,12 @@
 (defn launch-window! [ui id]
   (let [win (js/window.open load-mode-qs (str "window-" id))]
     (attach-load-event! ui id win)
-    ;(attach-unload-event! ui id win "from-load")
     win))
 
 (defn is-view-mode [search-string]
   (= (.indexOf search-string load-mode-qs) 0))
 
-(defn in [a b]
+(defn in-string [a b]
   (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
 
 (defn filter-search [apps search]
@@ -242,8 +229,8 @@
                (fn [[k v]]
                  (or (= search "")
                      (nil? search)
-                     (in (v :title) search)
-                     (in (v :description) search)))
+                     (in-string (v :title) search)
+                     (in-string (v :description) search)))
                apps))))
 
 (defn add-apps! [state store apps-to-add]
@@ -309,18 +296,13 @@
                        (fn [ev]
                          (update-window-content! app-data files title id)
                          (print "window load" id)))
-    ;(js/console.log "focusing window" w)
     (when win
-      ;(.blur w)
-      ;(.blur js/window)
       (.focus win)
-      ;(js/setTimeout #(.focus w) 0)
       (swap! ui assoc-in [:windows id] win))
     ; let the user know the window was blocked from opening
     (js/setTimeout
       (fn [] (when (aget win "closed")
-               (swap! state assoc :message {:level :warning
-                                            :text "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh."})))
+               (swap! state assoc :message blocked-message)))
       250)))
 
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
@@ -419,20 +401,7 @@
         n (.-name file)]
     [:li {:class (when active "active")
           :on-click #(reset! tab-index i)}
-     [:span n]
-     (comment
-       "removing this renaming mechanism until i figure out
-       a better data flow for it. probably just need a
-       saner ui." (if (and (not= (.-name file) "index.html") active)
-                    [:input {:key i
-                             :value n
-                             :style {:width (str (inc (.-length (or n ""))) "ch")}
-                             :on-change (fn [ev]
-                                          (swap! files assoc-in [i]
-                                                 (js/File. #js [file]
-                                                           (-> ev .-target .-value)
-                                                           {:type (.-type file)})))}]
-                    [:span n]))]))
+     [:span n]]))
 
 (defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
   [:div.editor
@@ -445,7 +414,6 @@
 
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
-        ;names (r/atom (vec (map #(.-name %) @files)))
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
         file-count (range (count @files))
@@ -520,8 +488,6 @@
   (let [apps (r/cursor state [:apps])
         mode (@state :mode)]
     [:div
-     ;[:div#detect-adblock {:class "ads ad adsbox doubleclick ad-placement carbon-ads" :style {:height "1px"} :ref #(js/setTimeout (partial adblock-detect! ui %) 1)} " "]
-
      [:section#header
       [:div#logo
        [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
@@ -536,25 +502,21 @@
         [:div.message {:on-click (fn [ev] (.preventDefault ev) (swap! state dissoc :message))}
          [component-icon :times] (-> @state :message :text)]])
 
-     #_ (when (@ui :adblocked)
-       [:pre.warning [:div.message "Adblocked."]])
-
      (case mode
        :about [component-about state]
        :edit [component-editor app-data]
        :upload [component-upload app-data]
        nil [:section#apps.screen
             [:section#tags
-             #_ [:ul
-                 [:li.active [:a {:href "#all"} "All"]]
-                 [:li [:a {:href "#examples"} "Examples"]]
-                 [:li [:a {:href "#templates"} "Templates"]]]
 
              [:div#search
-              [:input {:placeholder "Filter" :on-change #(swap! state assoc :search (-> % .-target .-value)) :value (@state :search)}]
+              [:input {:placeholder "Filter"
+                       :on-change #(swap! state assoc :search (-> % .-target .-value))
+                       :value (@state :search)}]
               [:span.icon-search [component-icon :search]]
               (when (and (@state :search) (not= (@state :search) ""))
-                [:span.icon-times {:on-click #(swap! state dissoc :search)} [component-icon :times]])]]
+                [:span.icon-times {:on-click #(swap! state dissoc :search)}
+                 [component-icon :times]])]]
 
             (for [[id app] (filter-search @apps (@state :search))]
               [:div {:key id} [component-list-app app-data id app]])
@@ -562,8 +524,14 @@
             (when (@state :add-menu)
               [:div#add-menu
                [:ul
-                [:li [:a {:href "#" :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))} "New app"]]
-                [:li.file-select [:input {:type "file" :name "upload-zip" :accept "application/zip" :on-change (partial initiate-zip-upload! app-data)}] [:label "From zip"]]]])
+                [:li [:a {:href "#"
+                          :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))}
+                      "New app"]]
+                [:li.file-select [:input {:type "file"
+                                          :name "upload-zip"
+                                          :accept "application/zip"
+                                          :on-change (partial initiate-zip-upload! app-data)}]
+                 [:label "From zip"]]]])
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
