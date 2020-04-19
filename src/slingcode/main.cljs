@@ -440,6 +440,7 @@
         [:li (if (-> @ui :windows (get app-id))
                [:span "(launched)"]
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "launch"])]
+        [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "publish"]]
         [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "delete"]]
         [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]]]
       [:li.topmenu (dropdown-menu-state menu-state :file) "File"
