@@ -153,7 +153,11 @@
     (go
       ; TODO: catch exception and warn if disk full
       (<p! (.setItem store (str "app/" id) (clj->js files)))
-      (swap! state assoc :apps (<! (get-apps-data store)))
+      (let [apps (<! (get-apps-data store))]
+        (swap! state 
+               #(-> %
+                    (assoc :apps apps)
+                    (assoc-in [:editing :files] files))))
       (when (= (.-name (nth files @file-index)) "index.html")
         (let [dom (.parseFromString dom-parser content "text/html")
               title (.querySelector dom "title")
