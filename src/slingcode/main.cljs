@@ -178,6 +178,17 @@
               title (if title (.-textContent title) "Untitled app")] 
           (update-window-content! app-data files title id))))))
 
+(defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
+  (let [files (get-in @state [:editing :files])
+        files (vec (concat (subvec files 0 file-index) (subvec files (inc file-index))))]
+    (go
+      ; TODO: catch exception and warn if disk full
+      (<p! (.setItem store (str "app/" app-id) (clj->js files)))
+      (let [apps (<! (get-apps-data store))]
+        (swap! state #(-> %
+                          (assoc :apps apps)
+                          (assoc-in [:editing :files] files)))))))
+
 (defn create-editor! [dom-node src content-type]
   (let [config {:lineNumbers true
                 :matchBrackets true
@@ -321,13 +332,18 @@
   (let [cm (get-in @state [:editing :editors @tab-index])]
     (save-handler! app-data app-id tab-index cm)))
 
-(defn delete-file! [{:keys [state ui store] :as app-data} id ev]
+(defn delete-app! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
   (when (js/confirm "Are you sure you want to delete this app?")
     (close-editor! state ev)
     (go
       (<p! (.removeItem store (str "app/" id)))
       (swap! state assoc :apps (<! (get-apps-data store))))))
+
+(defn delete-file! [{:keys [state ui store] :as app-data} app-id tab-index ev]
+  (.preventDefault ev)
+  (when (js/confirm "Are you sure you want to delete this file?")
+    (remove-file! app-data app-id @tab-index)))
 
 (defn download-zip! [{:keys [state ui store] :as app-data} id title ev]
   (.preventDefault ev)
@@ -419,13 +435,13 @@
         [:li (if (-> @ui :windows (get app-id))
                [:span "(launched)"]
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "launch"])]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id)} "delete"]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "delete"]]
         [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]]]
       [:li.topmenu (dropdown-menu-state menu-state :file) "File"
        [:ul
         [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "save"]]
         ; [:li [:a.color-warn {:href "#"} "rename"]]
-        [:li [:a.color-warn {:href "#" :on-click #(js/alert "Implement me.")} "delete"]]]]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "delete"]]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)]
