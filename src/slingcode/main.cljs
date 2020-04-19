@@ -132,15 +132,54 @@
                        (attach-unload-event! ui id win "from-load")
                        (print "window load" id))))
 
-(defn update-window-content! [{:keys [state ui store] :as app-data} files title id]
+(defn replace-tag-attribute [file-blobs tag lookup]
+  (let [tag-url (.getAttribute tag lookup)
+        tag-url-patched (or (get file-blobs tag-url) tag-url)]
+    ; TODO: if they match return {tag-url tag} and store refs
+    (.setAttribute tag lookup tag-url-patched)))
+
+(defn update-html-references! [files file]
+  ; TODO: would be great to replace all of this with a serviceWorker
+  ; which would return the blob when the filename is requested
+  ; problem is that would introduce 1 extra file to the distribution
+  ; and at the moment it's a pure single-HTML file.
+  ; the user could progressively upgrade to that by simply including
+  ; the service worker for items that fall through the cracks
+  (go
+    (let [references {}
+          src (<p! (get-file-contents file :text))
+          file-blobs (into {} (map (fn [f] {(.-name f) (js/window.URL.createObjectURL f)}) files))
+          dom (.parseFromString dom-parser src "text/html")
+          scripts (vec (js/Array.from (.querySelectorAll dom "script")))
+          links (vec (js/Array.from (.querySelectorAll dom "link")))
+          images (vec (js/Array.from (.querySelectorAll dom "img")))]
+      ; TODO: store references to tags replaced
+      ; so when the original file is saved it can
+      ; be live-reloaded in the document
+      (doseq [s scripts]
+        (replace-tag-attribute file-blobs s "src"))
+      (doseq [i images]
+        (replace-tag-attribute file-blobs i "src"))
+      (doseq [l links]
+        (replace-tag-attribute file-blobs l "href"))
+      (let [updated-dom-string (str "<!DOCTYPE html>\n" (-> dom .-documentElement .-outerHTML))]
+        [(js/File. (clj->js [updated-dom-string]) (.-name file) #js {:type (.-type file)})
+         references]))))
+
+(defn update-main-window-content! [{:keys [state ui store] :as app-data} files title id]
   (let [win (-> @ui :windows (get id))]
     (when win
+      (go
         (let [frame (-> win .-document (.getElementById "result"))
               title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
-              file (if files (get-index-file files) (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
+              file (if files
+                     (get-index-file files)
+                     (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))
+              [file references] (<! (update-html-references! files file))]
+          (swap! state assoc-in [:editing :references] references)
           (aset frame "src" (js/window.URL.createObjectURL file))
           (aset title-element "textContent" (or title "Untitled app")))
-        (print "window after updating content"))))
+        (print "window after updating content")))))
 
 (defn save-handler! [{:keys [state ui store] :as app-data} id file-index cm]
   (let [content (when (and cm (aget cm "getValue")) (.getValue cm))
@@ -162,7 +201,7 @@
         (let [dom (.parseFromString dom-parser content "text/html")
               title (.querySelector dom "title")
               title (if title (.-textContent title) "Untitled app")]
-          (update-window-content! app-data files title id))))))
+          (update-main-window-content! app-data files title id))))))
 
 (defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
   (let [files (get-in @state [:editing :files])
@@ -290,7 +329,7 @@
         win (or win (launch-window! ui id))]
     (.addEventListener win "load"
                        (fn [ev]
-                         (update-window-content! app-data files title id)
+                         (update-main-window-content! app-data files title id)
                          (print "window load" id)))
     (when win
       (.focus win)
