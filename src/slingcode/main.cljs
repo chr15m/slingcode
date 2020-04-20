@@ -22,6 +22,8 @@
 (defonce dom-parser (js/DOMParser.))
 (def re-uuid (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
 (def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
+(def re-css-url (js/RegExp. "url\\([\"']{0,1}(.*?)[\"']{0,1}\\)" "gi"))
+(def re-script-url (js/RegExp. "[\"'](.*?)[\"']" "gi"))
 
 (def load-mode-qs "?view")
 
@@ -132,27 +134,54 @@
                        (attach-unload-event! ui id win "from-load")
                        (print "window load" id))))
 
+(defn filter-valid-tags [file-blobs lookup tags]
+  (->> tags
+       (filter
+         (fn [tag]
+           (let [k (.getAttribute tag lookup)]
+             (and k (get file-blobs k)))))
+       (vec)))
+
 (defn replace-tag-attribute [file-blobs tag lookup]
   (let [tag-url (.getAttribute tag lookup)
         tag-url-patched (or (get file-blobs tag-url) tag-url)]
     ; TODO: if they match return {tag-url tag} and store refs
     (.setAttribute tag lookup tag-url-patched)))
 
+(defn replace-text-refs [file-blobs text regex]
+  (clojure.string/replace
+    text regex
+    (fn [[full inner]]
+      (let [matching-blob-url (get file-blobs inner)]
+        (if matching-blob-url
+          (.replace full inner matching-blob-url)
+          full)))))
+
+(defn replace-tag-text [file-blobs tag regex]
+  (aset tag "textContent"
+        (replace-text-refs file-blobs
+                           (aget tag "textContent")
+                           regex)))
+
 (defn update-html-references! [files file]
   ; TODO: would be great to replace all of this with a serviceWorker
-  ; which would return the blob when the filename is requested
-  ; problem is that would introduce 1 extra file to the distribution
+  ; which would return the blob when the filename is requested.
+  ; Problem is that would introduce 1 extra file to the distribution
   ; and at the moment it's a pure single-HTML file.
-  ; the user could progressively upgrade to that by simply including
-  ; the service worker for items that fall through the cracks
+  ; The user could progressively upgrade to that by simply including
+  ; the service worker for items that fall through the cracks.
+  ; This would make dynamic requests in user code possible.
   (go
     (let [references {}
           src (<p! (get-file-contents file :text))
           file-blobs (into {} (map (fn [f] {(.-name f) (js/window.URL.createObjectURL f)}) files))
+          ; TODO: run replacer over .js and .css files
           dom (.parseFromString dom-parser src "text/html")
-          scripts (vec (js/Array.from (.querySelectorAll dom "script")))
-          links (vec (js/Array.from (.querySelectorAll dom "link")))
-          images (vec (js/Array.from (.querySelectorAll dom "img")))]
+          scripts (filter-valid-tags file-blobs "src" (js/Array.from (.querySelectorAll dom "script")))
+          links (filter-valid-tags file-blobs "href" (js/Array.from (.querySelectorAll dom "link")))
+          images (filter-valid-tags file-blobs "src" (js/Array.from (.querySelectorAll dom "img")))
+          style-blocks (vec (js/Array.from (.querySelectorAll dom "style")))
+          script-blocks (vec (filter #(not (.getAttribute % "src")) (js/Array.from (.querySelectorAll dom "script"))))]
       ; TODO: store references to tags replaced
       ; so when the original file is saved it can
       ; be live-reloaded in the document
@@ -162,6 +191,10 @@
         (replace-tag-attribute file-blobs i "src"))
       (doseq [l links]
         (replace-tag-attribute file-blobs l "href"))
+      (doseq [sb style-blocks]
+        (replace-tag-text file-blobs sb re-css-url))
+      (doseq [sb script-blocks]
+        (replace-tag-text file-blobs sb re-script-url))
       (let [updated-dom-string (str "<!DOCTYPE html>\n" (-> dom .-documentElement .-outerHTML))]
         [(js/File. (clj->js [updated-dom-string]) (.-name file) #js {:type (.-type file)})
          references]))))
