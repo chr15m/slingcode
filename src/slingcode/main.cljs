@@ -135,7 +135,6 @@
                        (print "window load" id))))
 
 (defn get-blob-url [file-blobs filename]
-  (js/console.log "F" filename)
   (let [file (get file-blobs filename)]
     (when file
       (js/window.URL.createObjectURL file))))
@@ -151,8 +150,8 @@
 (defn replace-tag-attribute [file-blobs tag lookup]
   (let [tag-url (.getAttribute tag lookup)
         tag-url-patched (or (get-blob-url file-blobs tag-url) tag-url)]
-    ; TODO: if they match return {tag-url tag} and store refs
-    (.setAttribute tag lookup tag-url-patched)))
+    (.setAttribute tag lookup tag-url-patched)
+    {tag-url [tag]}))
 
 (defn replace-text-refs [file-blobs text regex]
   (clojure.string/replace
@@ -173,14 +172,10 @@
   (go
     (let [blob-chans (map
                        (fn [[file-name file]]
-                         (js/console.log file-name (.-type file) content-type)
-                         (js/console.log file)
                          (go
                            (if (= (.-type file) content-type)
                              (let [src (<p! (get-file-contents file :text))
                                    src (replace-text-refs file-blobs src regex)]
-                               (js/console.log "Replaced:")
-                               (js/console.log src)
                                {file-name (js/File. (clj->js [src]) (.-name file) #js {:type (.-type file)})})
                              {file-name file})))
                        file-blobs)]
@@ -195,10 +190,8 @@
   ; the service worker for items that fall through the cracks.
   ; This would make dynamic requests in user code possible.
   (go
-    (let [references {}
-          src (<p! (get-file-contents file :text))
+    (let [src (<p! (get-file-contents file :text))
           file-blobs (into {} (map (fn [f] {(.-name f) f}) files))
-          ; TODO: run replacer over .js and .css files
           file-blobs (<! (replace-file-refs file-blobs "text/css" re-css-url))
           file-blobs (<! (replace-file-refs file-blobs "application/javascript" re-script-url))
           dom (.parseFromString dom-parser src "text/html")
@@ -212,17 +205,18 @@
       ; be live-reloaded in the document
       (doseq [s scripts]
         (replace-tag-attribute file-blobs s "src"))
-      (doseq [i images]
-        (replace-tag-attribute file-blobs i "src"))
       (doseq [l links]
         (replace-tag-attribute file-blobs l "href"))
+      (doseq [i images]
+        (replace-tag-attribute file-blobs i "src"))
       (doseq [sb style-blocks]
         (replace-tag-text file-blobs sb re-css-url))
       (doseq [sb script-blocks]
         (replace-tag-text file-blobs sb re-script-url))
       (let [updated-dom-string (str "<!DOCTYPE html>\n" (-> dom .-documentElement .-outerHTML))]
         [(js/File. (clj->js [updated-dom-string]) (.-name file) #js {:type (.-type file)})
-         references]))))
+         {:file-blobs file-blobs
+          :links {:scripts scripts :links links}}]))))
 
 (defn update-main-window-content! [{:keys [state ui store] :as app-data} files title id]
   (let [win (-> @ui :windows (get id))]
