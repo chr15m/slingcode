@@ -134,17 +134,23 @@
                        (attach-unload-event! ui id win "from-load")
                        (print "window load" id))))
 
+(defn get-blob-url [file-blobs filename]
+  (js/console.log "F" filename)
+  (let [file (get file-blobs filename)]
+    (when file
+      (js/window.URL.createObjectURL file))))
+
 (defn filter-valid-tags [file-blobs lookup tags]
   (->> tags
        (filter
          (fn [tag]
            (let [k (.getAttribute tag lookup)]
-             (and k (get file-blobs k)))))
+             (and k (get-blob-url file-blobs k)))))
        (vec)))
 
 (defn replace-tag-attribute [file-blobs tag lookup]
   (let [tag-url (.getAttribute tag lookup)
-        tag-url-patched (or (get file-blobs tag-url) tag-url)]
+        tag-url-patched (or (get-blob-url file-blobs tag-url) tag-url)]
     ; TODO: if they match return {tag-url tag} and store refs
     (.setAttribute tag lookup tag-url-patched)))
 
@@ -152,7 +158,7 @@
   (clojure.string/replace
     text regex
     (fn [[full inner]]
-      (let [matching-blob-url (get file-blobs inner)]
+      (let [matching-blob-url (get-blob-url file-blobs inner)]
         (if matching-blob-url
           (.replace full inner matching-blob-url)
           full)))))
@@ -162,6 +168,23 @@
         (replace-text-refs file-blobs
                            (aget tag "textContent")
                            regex)))
+
+(defn replace-file-refs [file-blobs content-type regex]
+  (go
+    (let [blob-chans (map
+                       (fn [[file-name file]]
+                         (js/console.log file-name (.-type file) content-type)
+                         (js/console.log file)
+                         (go
+                           (if (= (.-type file) content-type)
+                             (let [src (<p! (get-file-contents file :text))
+                                   src (replace-text-refs file-blobs src regex)]
+                               (js/console.log "Replaced:")
+                               (js/console.log src)
+                               {file-name (js/File. (clj->js [src]) (.-name file) #js {:type (.-type file)})})
+                             {file-name file})))
+                       file-blobs)]
+      (<! (async/map merge blob-chans)))))
 
 (defn update-html-references! [files file]
   ; TODO: would be great to replace all of this with a serviceWorker
@@ -174,8 +197,10 @@
   (go
     (let [references {}
           src (<p! (get-file-contents file :text))
-          file-blobs (into {} (map (fn [f] {(.-name f) (js/window.URL.createObjectURL f)}) files))
+          file-blobs (into {} (map (fn [f] {(.-name f) f}) files))
           ; TODO: run replacer over .js and .css files
+          file-blobs (<! (replace-file-refs file-blobs "text/css" re-css-url))
+          file-blobs (<! (replace-file-refs file-blobs "application/javascript" re-script-url))
           dom (.parseFromString dom-parser src "text/html")
           scripts (filter-valid-tags file-blobs "src" (js/Array.from (.querySelectorAll dom "script")))
           links (filter-valid-tags file-blobs "href" (js/Array.from (.querySelectorAll dom "link")))
