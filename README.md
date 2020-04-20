@@ -9,7 +9,7 @@ Slingcode is a personal computing platform in a single html file.
 * You can share apps peer-to-peer over WebTorrent.
 * It's private. You only share what you choose.
 
-[Try Slingcode online](https://slingcode.net/slingcode.html) or right-click and "save link as" to [download `slingcode.html`](https://slingcode.net/slingcode.html) on to your own computer.
+[Try Slingcode online](https://slingcode.net/slingcode.html) or right-click and "save link as" to download [`slingcode.html`](https://slingcode.net/slingcode.html) on to your own computer.
 
 > Your computer. Your software. Your data.
 
