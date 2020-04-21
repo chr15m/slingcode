@@ -46,6 +46,10 @@ Slingcode is built with [ClojureScript](https://clojurescript.org/). To get star
 
 -- Bram Cohen
 
+> Kakehashi had no musical training, and wanted musical instruments to be accessible for professionals as well as amateurs like himself. He also wanted them to be inexpensive, intuitive, small, and simple.
+
+-- [Wikipedia, Ikutaro Kakehashi](https://en.wikipedia.org/wiki/Ikutaro_Kakehashi)
+
 ### Copyright
 
 Slingcode is Copyright Chris McCormick, 2020.
