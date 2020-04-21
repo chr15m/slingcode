@@ -294,7 +294,7 @@
           (when dom-node
             (let [cm (aget dom-node "CM")
                   cm (if cm
-                       (do (.refresh cm) cm)
+                       (do (.refresh cm) (.focus cm) cm)
                        (aset dom-node "CM" (create-editor! dom-node src (get-valid-type file))))]
               (swap! state assoc-in [:editing :editors file-index] cm))))
         (swap! state update-in [:editing :editors] dissoc file-index)))))
