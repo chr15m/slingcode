@@ -29,6 +29,7 @@
 
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 (def not-found-app (rc/inline "slingcode/not-found.html"))
+(def resource-updater-source (rc/inline "resourceupdater.js"))
 (def logo (rc/inline "slingcode/logo.svg"))
 (def revision (rc/inline "slingcode/revision.txt"))
 (def default-apps-base64-blob (rc/inline "default-apps.zip.b64"))
@@ -162,9 +163,11 @@
 
 (defn replace-tag-attribute [file-blobs tag lookup]
   (let [tag-url (.getAttribute tag lookup)
-        tag-url-patched (or (get-blob-url file-blobs tag-url) tag-url)]
+        tag-url-patched (or (get-blob-url file-blobs tag-url) tag-url)
+        reference-id (str (random-uuid))]
     (.setAttribute tag lookup tag-url-patched)
-    {tag-url [tag]}))
+    (.setAttribute tag "data-slingcode-reference" reference-id)
+    {tag-url [reference-id]}))
 
 (defn replace-text-refs [file-blobs text regex]
   (clojure.string/replace
@@ -208,31 +211,31 @@
           file-blobs (<! (replace-file-refs file-blobs "text/css" re-css-url))
           file-blobs (<! (replace-file-refs file-blobs "application/javascript" re-script-url))
           dom (.parseFromString dom-parser src "text/html")
+          html (.querySelector dom "html")
           scripts (filter-valid-tags file-blobs "src" (js/Array.from (.querySelectorAll dom "script")))
           links (filter-valid-tags file-blobs "href" (js/Array.from (.querySelectorAll dom "link")))
           images (filter-valid-tags file-blobs "src" (js/Array.from (.querySelectorAll dom "img")))
           style-blocks (vec (js/Array.from (.querySelectorAll dom "style")))
-          script-blocks (vec (filter #(not (.getAttribute % "src")) (js/Array.from (.querySelectorAll dom "script"))))]
-      ; TODO: store references to tags replaced
-      ; so when the original file is saved it can
-      ; be live-reloaded in the document
-      (doseq [s scripts]
-        (replace-tag-attribute file-blobs s "src"))
-      (doseq [l links]
-        (replace-tag-attribute file-blobs l "href"))
+          script-blocks (vec (filter #(not (.getAttribute % "src")) (js/Array.from (.querySelectorAll dom "script"))))
+          script-references (merge-with into (doall (map #(replace-tag-attribute file-blobs % "src") scripts)))
+          style-references (merge-with into (doall (map #(replace-tag-attribute file-blobs % "href") links)))]
       (doseq [i images]
         (replace-tag-attribute file-blobs i "src"))
       (doseq [sb style-blocks]
         (replace-tag-text file-blobs sb re-css-url))
       (doseq [sb script-blocks]
         (replace-tag-text file-blobs sb re-script-url))
+      (let [resource-updater (.createElement dom "script")]
+        (aset resource-updater "textContent" (str resource-updater-source))
+        (.appendChild html resource-updater))
       (let [updated-dom-string (str "<!DOCTYPE html>\n" (-> dom .-documentElement .-outerHTML))]
         [(js/File. (clj->js [updated-dom-string]) (.-name file) #js {:type (.-type file)})
          {:file-blobs file-blobs
-          :links {:scripts scripts :links links}}]))))
+          :tags {:scripts script-references
+                 :links style-references}}]))))
 
-(defn update-main-window-content! [{:keys [state ui store] :as app-data} files icon-url title id]
-  (let [win (-> @ui :windows (get id))]
+(defn update-main-window-content! [{:keys [state ui store] :as app-data} files icon-url title app-id]
+  (let [win (-> @ui :windows (get app-id))]
     (when win
       (go
         (let [frame (-> win .-document (.getElementById "result"))
@@ -242,14 +245,32 @@
                      (get-index-file files)
                      (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))
               [file references] (<! (update-html-references! files file))]
-          (swap! state assoc-in [:editing :references] references)
-          (aset frame "src" (js/window.URL.createObjectURL file))
           (aset title-element "textContent" (or title "Untitled app"))
-          (when icon-url
-            (.setAttribute icon-element "href" icon-url)))
+          (when icon-url (.setAttribute icon-element "href" icon-url)) 
+          (aset frame "src" (js/window.URL.createObjectURL file))
+          (swap! state #(-> %
+                            (assoc-in [:editing :references] references)
+                            (assoc-in [:editing :frame-window] (-> frame .-contentWindow)))))
         (print "window after updating content")))))
 
-(defn save-handler! [{:keys [state ui store] :as app-data} id file-index cm]
+(defn update-refs! [{:keys [state ui store] :as app-data} files app-id file-index]
+  (let [links (get-in @state [:editing :references :tags])
+        file-blobs (get-in @state [:editing :references :file-blobs])
+        frame-window (get-in @state [:editing :frame-window])
+        file (nth files file-index)]
+    (when links
+      (doseq [k (keys links)
+              references (links k)
+              [file-name reference-ids] references
+              reference-id reference-ids]
+        (when (= file-name (.-name file))
+          (.postMessage frame-window
+                        #js {"reference" reference-id
+                             "kind" (.substr (name k) 0 (dec (count (name k))))
+                             "url" (js/window.URL.createObjectURL file)}
+                        "*"))))))
+
+(defn save-handler! [{:keys [state ui store] :as app-data} app-id file-index cm]
   (let [content (when (and cm (aget cm "getValue")) (.getValue cm))
         files (get-in @state [:editing :files])
         files (vec (map-indexed (fn [i f]
@@ -259,18 +280,19 @@
                                 files))]
     (go
       ; TODO: catch exception and warn if disk full
-      (<p! (.setItem store (str "app/" id) (clj->js files)))
+      (<p! (.setItem store (str "app/" app-id) (clj->js files)))
       (let [apps (<! (get-apps-data store))]
         (swap! state 
                #(-> %
                     (assoc :apps apps)
                     (assoc-in [:editing :files] files))))
-      (when (= (.-name (nth files @file-index)) "index.html")
+      (if (= (.-name (nth files @file-index)) "index.html")
         (let [dom (.parseFromString dom-parser content "text/html")
               title (.querySelector dom "title")
               icon-url (extract-icon-url dom files)
               title (if title (.-textContent title) "Untitled app")]
-          (update-main-window-content! app-data files title icon-url id))))))
+          (update-main-window-content! app-data files title icon-url app-id))
+        (update-refs! app-data files app-id @file-index)))))
 
 (defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
   (let [files (get-in @state [:editing :files])
@@ -301,7 +323,6 @@
     cm))
 
 (defn init-cm! [{:keys [state ui] :as app-data} id file-index tab-index dom-node]
-  ; TODO: this function is called way more times than it needs to be - optimise
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id tab-index))
   (go
     (let [files (-> @state :editing :files)]
