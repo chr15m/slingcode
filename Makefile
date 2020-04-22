@@ -7,7 +7,7 @@ SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
-slingcode.net: slingcode.net/index.html slingcode.net/publish.html slingcode.net/slingcode.html slingcode.net/license.txt
+slingcode.net: slingcode.net/index.html slingcode.net/publish.html slingcode.net/slingcode.html slingcode.net/license.txt slingcode.net/revision.txt
 
 slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
@@ -49,6 +49,12 @@ src/default-apps.zip: $(shell find src/default-apps)
 	rm -f $@
 	cd src/default-apps && zip -r ../default-apps.zip .
 
+slingcode.net/revision.txt: src/slingcode/revision.txt
+	cp $< $@
+
+src/slingcode/revision.txt: .git/index
+	git rev-parse HEAD | cut -b -16 > $@
+
 node_modules: package.json
 	npm i
 	touch node_modules
@@ -62,9 +68,6 @@ $(BOOTLEG):
 	wget $(BOOTLEGURL) -O $(BOOTLEGTAR)
 	tar -zxvf $(BOOTLEGTAR) && mv bootleg $(BOOTLEG)
 	rm $(BOOTLEGTAR)
-
-src/slingcode/revision.txt: .git/index
-	git rev-parse HEAD | cut -b -16 > $@
 
 # dev targets
 
