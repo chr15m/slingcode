@@ -530,6 +530,11 @@
         app-window (-> @ui :windows (get app-id))]
     [:section#editor.screen
      [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
+      [:li.topmenu (dropdown-menu-state menu-state :file) "File"
+       [:ul
+        [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "save"]]
+        ; [:li [:a.color-warn {:href "#"} "rename"]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "delete"]]]]
       [:li.topmenu (dropdown-menu-state menu-state :app) "App"
        [:ul
         [:li (if (and app-window (not (.-closed app-window)))
@@ -537,12 +542,7 @@
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "launch"])]
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "publish"]]
         [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "delete"]]
-        [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]]]
-      [:li.topmenu (dropdown-menu-state menu-state :file) "File"
-       [:ul
-        [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "save"]]
-        ; [:li [:a.color-warn {:href "#"} "rename"]]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "delete"]]]]]
+        [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
