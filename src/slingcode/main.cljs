@@ -480,22 +480,34 @@
         (recur (increment-filename f))
         f))))
 
-(defn add-file! [{:keys [state store ui] :as app-data} ev]
+(defn add-file! [{:keys [state store ui] :as app-data} file]
+  (swap! state
+         #(-> %
+              (update-in [:editing :files] conj file)
+              (assoc-in [:editing :tab-index] (count (get-in % [:editing :files])))))
+  (let [app-id (get-in @state [:editing :id])
+        tab-index (r/cursor state [:editing :tab-index])]
+    (save-handler! app-data app-id tab-index nil)))
+
+(defn add-selected-file! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))
         file (first files)
         file-name (ensure-unique-filename (-> @state :editing :files) (.-name file))
         file-type (get-valid-type file)
         file (js/File. #js [file] file-name {:type file-type})]
-    (swap! state
-           #(-> %
-                (update-in [:editing :files] conj file)
-                (assoc-in [:editing :tab-index] (count (get-in % [:editing :files]))))))
-  (let [app-id (get-in @state [:editing :id])
-        tab-index (r/cursor state [:editing :tab-index])]
-    (save-handler! app-data app-id tab-index ev)))
+    (add-file! app-data file)))
 
-(defn switch-tab! [editor tab-index i]
+(defn create-empty-file! [{:keys [state store ui] :as app-data} ev]
+  (.preventDefault ev)
+  (let [file-name (js/prompt "Filename:")
+        file (when (and file-name (not= file-name ""))
+               (js/File. #js [""] file-name {:type (or (mime-types/lookup file-name) "text/plain")}))]
+    (when file
+      (add-file! app-data file))))
+
+(defn switch-tab! [editor tab-index i ev]
+  (.preventDefault ev)
   (reset! tab-index i))
 
 ; ***** views ***** ;
@@ -551,11 +563,16 @@
                    [component-filename editor files i tab-index]
                    {:key (.-name f)}))))
       (when (< (count @files) 7)
-        [:li.file-select.add-file
-         [:input {:type "file"
-                  :name "add-file"
-                  :accept "image/*,text/*,application/json,application/javascript"
-                  :on-change (partial add-file! app-data)}] [:label "+"]])]
+        [:li.add-file-menu.topmenu (merge {:on-mouse-leave #(reset! menu-state nil)}
+                                          (dropdown-menu-state menu-state :add-file)) "+"
+         [:ul
+          [:li
+           [:input {:type "file"
+                    :id "add-file"
+                    :accept "image/*,text/*,application/json,application/javascript"
+                    :on-change (partial add-selected-file! app-data)}]
+           [:label {:for "add-file"} "Upload"]]
+          [:li {:on-click (partial create-empty-file! app-data) } "Create"]]])]
      [:div
       (doall (for [i file-count]
                (let [file (nth @files i)
@@ -641,10 +658,10 @@
                 [:li [:a {:href "#"
                           :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))}
                       "New app"]]
-                [:li.file-select [:input {:type "file"
-                                          :name "upload-zip"
-                                          :accept "application/zip"
-                                          :on-change (partial initiate-zip-upload! app-data)}]
+                [:li [:input {:type "file"
+                              :name "upload-zip"
+                              :accept "application/zip"
+                              :on-change (partial initiate-zip-upload! app-data)}]
                  [:label "From zip"]]]])
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))

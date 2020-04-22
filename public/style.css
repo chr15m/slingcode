@@ -460,32 +460,28 @@ section#editor #file-menu {
   }
 }
 
-section#editor #file-menu li {
+section#editor #file-menu > li {
   margin-left: 1em;
   color: #e5b413;
 }
 
-section#editor #file-menu li a {
-  color: #aaa;
-}
-
-section#editor #file-menu li.topmenu {
+section#editor li.topmenu {
   display: inline-block;
   vertical-align: top;
   cursor: pointer;
 }
 
-section#editor #file-menu li.topmenu > ul {
+section#editor li.topmenu > ul {
   display: none;
   z-index: 1000;
 }
 
-section#editor #file-menu li.topmenu > ul li {
+section#editor li.topmenu > ul li {
   margin: 0.25em 0.25em;
   padding: 0em;
 }
 
-section#editor #file-menu li.topmenu.open > ul {
+section#editor li.topmenu.open > ul {
   display: block;
   position: absolute;
   background-color: #232a25;
@@ -494,6 +490,22 @@ section#editor #file-menu li.topmenu.open > ul {
   border: 2px solid #999;
   padding: 0.5em;
   list-style-type: none;
+}
+
+section#editor .topmenu ul li {
+  color: #aaa;
+}
+
+section#editor #file-menu li a {
+  color: #aaa;
+}
+
+section#editor .topmenu ul li a:hover {
+  color: #e5b413 !important;
+}
+
+section#editor .topmenu ul li:hover {
+  color: #e5b413;
 }
 
 section#editor ul#files {
@@ -505,7 +517,7 @@ section#editor ul#files {
   /*overflow-x: auto;*/
 }
 
-section#editor ul#files li {
+section#editor ul#files > li {
   border: 2px solid #999;
   border-bottom: none;
   padding: 0.25em 1em;
@@ -516,11 +528,11 @@ section#editor ul#files li {
   cursor: pointer;
 }
 
-section#editor ul#files li.active {
+section#editor ul#files > li.active {
   background-color: #232a25;
 }
 
-section#editor ul#files li.active input {
+section#editor ul#files > li.active input {
   background: none !important;
   font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-size: 24px;
@@ -536,13 +548,13 @@ div.editor > div {
   height: 100%;
 }
 
-section#editor .file-select input {
+section#editor .add-file-menu input {
   max-width: 3em;
   margin-left: -1em;
   cursor: pointer;
 }
 
-section#editor .file-select.add-file label {
+section#editor .add-file-menu {
   color: #e5b413;
 }
 
