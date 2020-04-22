@@ -563,7 +563,7 @@
                  [:div {:key filename}
                   (cond
                     (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
-                                                              [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
+                                                             [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
                     :else [component-codemirror-block app-data app-id file i tab-index])])))]]))
 
 (defn component-list-app [{:keys [state ui] :as app-data} id app]
