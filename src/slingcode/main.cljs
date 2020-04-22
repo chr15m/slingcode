@@ -534,7 +534,7 @@
 ; ***** views ***** ;
 
 (defn component-upload [{:keys [state ui] :as app-data}]
-  [:div "Upload a zip file"
+  [:div "Load a zip file"
    [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
 (defn component-filename [editor files i tab-index]
@@ -563,19 +563,19 @@
         app-window (-> @ui :windows (get app-id))]
     [:section#editor.screen
      [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
-      [:li.topmenu (dropdown-menu-state menu-state :file) "File"
-       [:ul
-        [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "Save"]]
-        ; [:li [:a.color-warn {:href "#"} "rename"]]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "Delete"]]]]
       [:li.topmenu (dropdown-menu-state menu-state :app) "App"
        [:ul
         [:li (if (and app-window (not (aget app-window "closed")))
                [:span "(launched)"]
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "Launch"])]
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "Publish"]]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]]]
-      [:li.topmenu {:on-click (partial close-editor! state)} "Home"]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]
+        [:li {:on-click (partial close-editor! state)} "Close"]]]
+      [:li.topmenu (dropdown-menu-state menu-state :file) "File"
+       [:ul
+        [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "Save"]]
+        ; [:li [:a.color-warn {:href "#"} "rename"]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "Delete"]]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
@@ -592,7 +592,7 @@
                     :id "add-file"
                     :accept "image/*,text/*,application/json,application/javascript"
                     :on-change (partial add-selected-file! app-data)}]
-           [:label {:for "add-file"} "Upload"]]
+           [:label {:for "add-file"} "Load"]]
           [:li {:on-click (partial create-empty-file! app-data) } "Create"]]])]
      [:div
       (doall (for [i file-count]
