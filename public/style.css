@@ -542,6 +542,10 @@ section#editor .file-select input {
   cursor: pointer;
 }
 
+section#editor .file-select.add-file label {
+  color: #e5b413;
+}
+
 section#editor .file-content {
   position: absolute;
   display: flex;
