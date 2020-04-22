@@ -294,8 +294,9 @@
           (when dom-node
             (let [cm (aget dom-node "CM")
                   cm (if cm
-                       (do (.refresh cm) (.focus cm) cm)
+                       (do (.refresh cm) cm)
                        (aset dom-node "CM" (create-editor! dom-node src (get-valid-type file))))]
+              (.focus cm)
               (swap! state assoc-in [:editing :editors file-index] cm))))
         (swap! state update-in [:editing :editors] dissoc file-index)))))
 
@@ -476,24 +477,27 @@
         tab-index (r/cursor state [:editing :tab-index])]
     (save-handler! app-data app-id tab-index ev)))
 
+(defn switch-tab! [editor tab-index i]
+  (reset! tab-index i))
+
 ; ***** views ***** ;
 
 (defn component-upload [{:keys [state ui] :as app-data}]
   [:div "Upload a zip file"
    [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
-(defn component-filename [files i tab-index]
+(defn component-filename [editor files i tab-index]
   (let [active (= i @tab-index)
         file (nth @files i)
         n (.-name file)]
     [:li {:class (when active "active")
-          :on-click #(reset! tab-index i)}
+          :on-click (partial switch-tab! editor tab-index i)}
      [:span n]]))
 
-(defn component-codemirror-block [{:keys [state ui] :as app-data} f i tab-index]
+(defn component-codemirror-block [{:keys [state ui] :as app-data} app-id f i tab-index]
   [:div.editor
    {:style {:display (if (= i @tab-index) "block" "none")}
-    :ref (partial init-cm! app-data (-> @state :editing :id) i tab-index)}])
+    :ref (partial init-cm! app-data app-id i tab-index)}])
 
 (defn dropdown-menu-state [menu-state id]
   {:class (if (= @menu-state id) "open")
@@ -504,12 +508,13 @@
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
         file-count (range (count @files))
-        app-id (-> @state :editing :id)]
+        app-id (-> @state :editing :id)
+        app-window (-> @ui :windows (get app-id))]
     [:section#editor.screen
      [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
       [:li.topmenu (dropdown-menu-state menu-state :app) "App"
        [:ul
-        [:li (if (-> @ui :windows (get app-id))
+        [:li (if (and app-window (not (.-closed app-window)))
                [:span "(launched)"]
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "launch"])]
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "publish"]]
@@ -522,9 +527,10 @@
         [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "delete"]]]]]
      [:ul#files
       (doall (for [i file-count]
-               (let [f (nth @files i)]
+               (let [f (nth @files i)
+                     editor (get-in @state [:editing :editors i])]
                  (with-meta
-                   [component-filename files i tab-index]
+                   [component-filename editor files i tab-index]
                    {:key (.-name f)}))))
       (when (< (count @files) 5)
         [:li.file-select [:input {:type "file"
@@ -540,7 +546,7 @@
                   (cond
                     (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
                                                               [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
-                    :else [component-codemirror-block app-data file i tab-index])])))]]))
+                    :else [component-codemirror-block app-data app-id file i tab-index])])))]]))
 
 (defn component-list-app [{:keys [state ui] :as app-data} id app]
   [:div.app
