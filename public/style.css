@@ -64,6 +64,10 @@ blockquote {
   color: #666;
 }
 
+strong {
+  color: #eee;
+}
+
 button:hover {
   background-color: #eee;
 }
@@ -159,6 +163,10 @@ nav {
 
 /*** website markdown ***/
 
+#logo a span {
+  color: #999;
+}
+
 section.website li {
   margin-bottom: 0.5em;
 }
@@ -168,6 +176,10 @@ section.website code {
   font-size: 24px;
   font-weight: bold;
   color: #eee;
+}
+
+section.website a code {
+  color: #31D584;
 }
 
 section.website img {
@@ -186,6 +198,37 @@ section.website h3 {
 
 section.website blockquote {
   color: #50A1EA;
+  margin: 2em;
+}
+
+section.website blockquote + p {
+  margin-bottom: 4em;
+}
+
+.tinysignup {
+  text-align: center;
+  margin-top: 3em;
+  margin-bottom: 3em;
+}
+
+.tinysignup p {
+  color: #31D584;
+}
+
+.tinysignup input {
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
+  font-size: 24px;
+  font-weight: bold;
+  border: 2px solid #555;
+  height: 48px;
+  border-radius: 3px;
+  max-width: 90%;
+  margin: 0.5em;
+  padding: 0.25em;
+}
+
+.tinysignup button {
+  margin-top: 1em;
 }
 
 /*** apps ***/
@@ -275,6 +318,7 @@ section#about {
   width: 100%;
   max-width: 800px;
   padding: 1em;
+  padding-top: 0px;
 }
 
 /*** individual app ***/

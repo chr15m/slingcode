@@ -7,14 +7,17 @@ SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
-slingcode.net: slingcode.net/index.html slingcode.net/slingcode.html slingcode.net/license.txt
+slingcode.net: slingcode.net/index.html slingcode.net/publish.html slingcode.net/slingcode.html slingcode.net/license.txt
 
 slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
 
 slingcode.net/index.html: src/slingcode-site-bootleg.clj README.md src/slingcode-static.html $(SITEFILES_DEST)
-	$(BOOTLEG) src/slingcode-site-bootleg.clj > $@
+	$(BOOTLEG) src/slingcode-site-bootleg.clj README.md > $@
+
+slingcode.net/publish.html: src/slingcode-site-bootleg.clj publish.md src/slingcode-static.html $(SITEFILES_DEST)
+	$(BOOTLEG) src/slingcode-site-bootleg.clj publish.md > $@
 
 slingcode.net/public/%: public/%
 	@mkdir -p `dirname $@`
@@ -69,6 +72,10 @@ src/slingcode/revision.txt:
 
 watch: src/slingcode/revision.txt src/default-apps.zip.b64 node_modules
 	npx shadow-cljs watch app 
+
+watch-site: slingcode.net/index.html slingcode.net/publish.html $(SITEFILES_DEST)
+	cd slingcode.net && live-server --no-browser --port=8000 --wait=500 &
+	while true; do $(MAKE) -q || $(MAKE); sleep 0.5; done
 
 repl:
 	npx shadow-cljs cljs-repl app

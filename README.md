@@ -1,13 +1,13 @@
 <p align="center" id="gh-logo"><img src="public/logo.svg?sanitize=true" alt="Slingcode logo"></p>
 
-Slingcode is a personal computing platform in a single html file.
+Slingcode is a **personal computing platform** in a single html file.
 
-* You can make, run, and share web apps with it.
-* You don't need any complicated tools to use it, just a web browser.
+* You can **make, run, and share web apps** with it.
+* You don't need any complicated tools to use it, **just a web browser**.
 * You can put it on a web site, run it from a USB stick, laptop, or phone, and it doesn't need an internet connection to work.
-* You can "add to home screen" in your device's browser to easily access your library of programs on the go.
-* You can share apps peer-to-peer over WebTorrent.
-* It's private. You only share what you choose.
+* You can "**add to home screen**" in your phone's browser to easily access your library of programs on the go.
+* You can **share apps peer-to-peer** over WebTorrent.
+* **It's private**. You only share what you choose.
 
 [Try Slingcode online](https://slingcode.net/slingcode.html) or right-click and "save link as" to download [`slingcode.html`](https://slingcode.net/slingcode.html) on to your own computer.
 
@@ -34,7 +34,7 @@ You can find me online here:
 
 ### Hack & contribute
 
-Slingcode is built with [ClojureScript](https://clojurescript.org/). To get started contributing to Slingcode itself, [check out the codebase](https://github.com/chr15m/slingcode) and run `make`.
+Slingcode is built with [ClojureScript](https://clojurescript.org/). To get started contributing to Slingcode itself, [check out the codebase](https://github.com/chr15m/slingcode) and run `make`. You'll need Node and Java installed.
 
 ### Inspiration
 

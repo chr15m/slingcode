@@ -570,7 +570,7 @@
         [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "Delete"]]]]
       [:li.topmenu (dropdown-menu-state menu-state :app) "App"
        [:ul
-        [:li (if (and app-window (not (.-closed app-window)))
+        [:li (if (and app-window (not (aget app-window "closed")))
                [:span "(launched)"]
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "Launch"])]
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "Publish"]]
