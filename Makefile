@@ -63,7 +63,7 @@ $(BOOTLEG):
 	tar -zxvf $(BOOTLEGTAR) && mv bootleg $(BOOTLEG)
 	rm $(BOOTLEGTAR)
 
-src/slingcode/revision.txt:
+src/slingcode/revision.txt: .git/index
 	git rev-parse HEAD | cut -b -16 > $@
 
 # dev targets
