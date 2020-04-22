@@ -541,8 +541,8 @@
                [:span "(launched)"]
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "launch"])]
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "publish"]]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "delete"]]
-        [:li [:a {:href "#" :on-click (partial close-editor! state)} "close"]]]]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "delete"]]]]
+      [:li.topmenu {:on-click (partial close-editor! state)} "Home"]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
