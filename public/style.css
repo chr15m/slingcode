@@ -285,6 +285,11 @@ div.app {
   cursor: pointer;
 }
 
+div.app img.app-icon {
+  width: 64px;
+  height: 64px;
+}
+
 div.app button svg {
   fill: #232323;
   margin-top: 6px;

@@ -62,6 +62,17 @@
                          (.readAsText fr file))))))
     (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer.) ""))))))
 
+(defn get-files-map [files]
+  (into {} (map (fn [f] {(.-name f) f}) files)))
+
+(defn extract-icon-url [dom files]
+  (let [files-map (get-files-map files)
+        icon-url (.querySelector dom "link[rel*='icon']")
+        icon-url (if icon-url (.getAttribute icon-url "href"))
+        icon-file (get files-map icon-url)
+        icon-url (if icon-file (js/window.URL.createObjectURL icon-file) icon-url)]
+    icon-url))
+
 (defn get-apps-data [store]
   (go
     (let [store-keys (remove nil? (map extract-id (<p! (.keys store))))
@@ -74,6 +85,7 @@
                                      dom (.parseFromString dom-parser src "text/html")
                                      title (.querySelector dom "title")
                                      title (if title (.-textContent title) "Untitled app")
+                                     icon-url (extract-icon-url dom files)
                                      description (.querySelector dom "meta[name='description']")
                                      description (if description (.getAttribute description "content") "")
                                      tags (.querySelector dom "meta[name='slingcode-tags']")
@@ -83,7 +95,8 @@
                                            :title title
                                            :description description
                                            :tags (js->clj tags)
-                                           :files (vec files)}}]
+                                           :files (vec files)
+                                           :icon-url icon-url}}]
                                  app)))
                            store-keys))
           result-chans (when app-chans (async/map merge app-chans))
@@ -191,7 +204,7 @@
   ; This would make dynamic requests in user code possible.
   (go
     (let [src (<p! (get-file-contents file :text))
-          file-blobs (into {} (map (fn [f] {(.-name f) f}) files))
+          file-blobs (get-files-map files)
           file-blobs (<! (replace-file-refs file-blobs "text/css" re-css-url))
           file-blobs (<! (replace-file-refs file-blobs "application/javascript" re-script-url))
           dom (.parseFromString dom-parser src "text/html")
@@ -218,19 +231,22 @@
          {:file-blobs file-blobs
           :links {:scripts scripts :links links}}]))))
 
-(defn update-main-window-content! [{:keys [state ui store] :as app-data} files title id]
+(defn update-main-window-content! [{:keys [state ui store] :as app-data} files icon-url title id]
   (let [win (-> @ui :windows (get id))]
     (when win
       (go
         (let [frame (-> win .-document (.getElementById "result"))
               title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
+              icon-element (-> win .-document (.querySelector "link[rel*='icon']"))
               file (if files
                      (get-index-file files)
                      (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))
               [file references] (<! (update-html-references! files file))]
           (swap! state assoc-in [:editing :references] references)
           (aset frame "src" (js/window.URL.createObjectURL file))
-          (aset title-element "textContent" (or title "Untitled app")))
+          (aset title-element "textContent" (or title "Untitled app"))
+          (when icon-url
+            (.setAttribute icon-element "href" icon-url)))
         (print "window after updating content")))))
 
 (defn save-handler! [{:keys [state ui store] :as app-data} id file-index cm]
@@ -252,8 +268,9 @@
       (when (= (.-name (nth files @file-index)) "index.html")
         (let [dom (.parseFromString dom-parser content "text/html")
               title (.querySelector dom "title")
+              icon-url (extract-icon-url dom files)
               title (if title (.-textContent title) "Untitled app")]
-          (update-main-window-content! app-data files title id))))))
+          (update-main-window-content! app-data files title icon-url id))))))
 
 (defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
   (let [files (get-in @state [:editing :files])
@@ -377,12 +394,13 @@
   (let [app (-> @state :apps (get id))
         files (if app (app :files))
         title (if app (app :title))
+        icon-url (if app (app :icon-url))
         win (-> @ui :windows (get id))
         win (if (not (and win (.-closed win))) win)
         win (or win (launch-window! ui id))]
     (.addEventListener win "load"
                        (fn [ev]
-                         (update-main-window-content! app-data files title id)
+                         (update-main-window-content! app-data files icon-url title id)
                          (print "window load" id)))
     (when win
       (.focus win)
@@ -532,7 +550,7 @@
                  (with-meta
                    [component-filename editor files i tab-index]
                    {:key (.-name f)}))))
-      (when (< (count @files) 5)
+      (when (< (count @files) 7)
         [:li.file-select [:input {:type "file"
                                   :name "add-file"
                                   :accept "image/*,text/*,application/json,application/javascript"
@@ -552,7 +570,9 @@
   [:div.app
    [:div.columns
     [:div.column
-     [:div [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]]] 
+     [:div (if (app :icon-url)
+             [:img.app-icon {:src (app :icon-url)}]
+             [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
      [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
      [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
     [:div.column
