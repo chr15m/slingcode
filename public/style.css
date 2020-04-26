@@ -82,6 +82,7 @@ input[type=file] {
   position: absolute;
   max-width: 90%;
   font-size: 0.75em;
+  cursor: pointer;
 }
 
 section#header p {
@@ -515,6 +516,10 @@ section#editor li.topmenu {
   cursor: pointer;
 }
 
+section#editor li.topmenu input, section#editor li.topmenu label {
+  cursor: pointer;
+}
+
 section#editor li.topmenu > ul {
   display: none;
   z-index: 1000;
@@ -538,6 +543,7 @@ section#editor li.topmenu.open > ul {
 
 section#editor .topmenu ul li {
   color: #aaa;
+  cursor: pointer;
 }
 
 section#editor #file-menu li a {

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "bugout": "0.0.9",
     "codemirror": "^5.51.0",
     "create-react-class": "^15.6.3",
     "jszip": "^3.3.0",

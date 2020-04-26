@@ -14,7 +14,9 @@
     ["codemirror/mode/htmlmixed/htmlmixed" :as htmlmixed]
     ["codemirror/mode/xml/xml" :as xml]
     ["codemirror/mode/css/css" :as css]
-    ["codemirror/mode/javascript/javascript" :as javascript]))
+    ["codemirror/mode/javascript/javascript" :as javascript]
+    ["bugout" :as Bugout]
+    ["tweetnacl" :as nacl]))
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
@@ -33,6 +35,19 @@
 (def default-apps-base64-blob (rc/inline "default-apps.zip.b64"))
 (def blocked-message {:level :warning
                       :text "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh."})
+
+(comment
+  (def b (Bugout. "i-am-a-room"))
+
+  (.on b "seen" 
+       (fn [address]
+         (js/console.log "seen:" address)))
+
+  (.on b "message"
+       (fn [address message]
+         (js/console.log "message:" address message)))
+
+  (.close b))
 
 ; ***** data ***** ;
 
@@ -552,6 +567,17 @@
   {:class (if (= @menu-state id) "open")
    :on-click #(swap! menu-state (fn [old-state] (if (= old-state id) nil id)))})
 
+(defn file-load-li [app-data uniq]
+  [:li
+   [:input {:type "file"
+            :id (str "add-file-" uniq)
+            :accept "image/*,text/*,application/json,application/javascript"
+            :on-change (partial add-selected-file! app-data)}]
+   [:label {:for (str "add-file-" uniq)} "Load"]])
+
+(defn file-create-li [app-data]
+  [:li {:on-click (partial create-empty-file! app-data)} "Create"])
+
 (defn component-editor [{:keys [state ui] :as app-data}]
   (let [files (r/cursor state [:editing :files])
         tab-index (r/cursor state [:editing :tab-index])
@@ -573,7 +599,9 @@
        [:ul
         [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "Save"]]
         ; [:li [:a.color-warn {:href "#"} "rename"]]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "Delete"]]]]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "Delete"]]
+        [file-load-li app-data "top"]
+        [file-create-li app-data]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
@@ -585,13 +613,8 @@
         [:li.add-file-menu.topmenu (merge {:on-mouse-leave #(reset! menu-state nil)}
                                           (dropdown-menu-state menu-state :add-file)) "+"
          [:ul
-          [:li
-           [:input {:type "file"
-                    :id "add-file"
-                    :accept "image/*,text/*,application/json,application/javascript"
-                    :on-change (partial add-selected-file! app-data)}]
-           [:label {:for "add-file"} "Load"]]
-          [:li {:on-click (partial create-empty-file! app-data) } "Create"]]])]
+          [file-load-li app-data "sub"]
+          [file-create-li app-data]]])]
      [:div
       (doall (for [i file-count]
                (let [file (nth @files i)
