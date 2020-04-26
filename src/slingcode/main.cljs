@@ -764,8 +764,8 @@
             (.addEventListener js/window "message"
                                (aset js/window "message-callback" message-callback))
             (when (and first-run (= (count stored-apps) 0))
-              (<! (add-apps! state store default-apps))
-              (js/localStorage.setItem "slingcode-has-run" "true"))
+              (when (<! (add-apps! state store default-apps))
+                (js/localStorage.setItem "slingcode-has-run" "true")))
             (js/console.log "Default apps:" (clj->js default-apps))
             (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
             (rdom/render [component-main app-data] el)))))))
