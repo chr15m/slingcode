@@ -639,7 +639,7 @@ section#editor .file-content > div {
 
 /*** popout ***/
 
-#result {
+#slingcode-frame {
   background-color: white;
   border: 0px solid transparent;
   position: fixed;

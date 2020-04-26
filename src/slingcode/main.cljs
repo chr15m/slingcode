@@ -25,8 +25,6 @@
 (def re-css-url (js/RegExp. "url\\([\"']{0,1}(.*?)[\"']{0,1}\\)" "gi"))
 (def re-script-url (js/RegExp. "[\"'](.*?)[\"']" "gi"))
 
-(def load-mode-qs "?view")
-
 (def boilerplate (rc/inline "slingcode/boilerplate.html"))
 (def not-found-app (rc/inline "slingcode/not-found.html"))
 (def resource-updater-source (rc/inline "resourceupdater.js"))
@@ -139,8 +137,9 @@
 (defn attach-unload-event! [ui id win which]
   (.addEventListener win "unload"
                      (fn [ev]
-                       (js/console.log "unload window" id which win)
-                       (swap! ui update-in [:windows] dissoc id))))
+                       ;(js/console.log "unload window" id which win)
+                       ;(swap! ui update-in [:windows] dissoc id)
+                       (js/setTimeout (fn [] (js/console.log "closed?" (aget win "closed"))) 250))))
 
 (defn attach-load-event! [ui id win]
   (.addEventListener win "load"
@@ -184,17 +183,17 @@
                            (aget tag "textContent")
                            regex)))
 
-(defn replace-file-refs [file-blobs content-type regex]
+(defn replace-file-refs [file-blobs file-name file content-type regex]
   (go
-    (let [blob-chans (map
-                       (fn [[file-name file]]
-                         (go
-                           (if (= (.-type file) content-type)
-                             (let [src (<p! (get-file-contents file :text))
-                                   src (replace-text-refs file-blobs src regex)]
-                               {file-name (js/File. (clj->js [src]) (.-name file) #js {:type (.-type file)})})
-                             {file-name file})))
-                       file-blobs)]
+    (if (= (.-type file) content-type)
+      (let [src (<p! (get-file-contents file :text))
+            src (replace-text-refs file-blobs src regex)]
+        {file-name (js/File. (clj->js [src]) (.-name file) #js {:type (.-type file)})})
+      {file-name file})))
+
+(defn replace-file-blobs-refs [file-blobs content-type regex]
+  (go
+    (let [blob-chans (map (fn [[file-name file]] (replace-file-refs file-blobs file-name file content-type regex)) file-blobs)]
       (<! (async/map merge blob-chans)))))
 
 (defn update-html-references! [files file]
@@ -208,8 +207,8 @@
   (go
     (let [src (<p! (get-file-contents file :text))
           file-blobs (get-files-map files)
-          file-blobs (<! (replace-file-refs file-blobs "text/css" re-css-url))
-          file-blobs (<! (replace-file-refs file-blobs "application/javascript" re-script-url))
+          file-blobs (<! (replace-file-blobs-refs file-blobs "text/css" re-css-url))
+          file-blobs (<! (replace-file-blobs-refs file-blobs "application/javascript" re-script-url))
           dom (.parseFromString dom-parser src "text/html")
           html (.querySelector dom "html")
           scripts (filter-valid-tags file-blobs "src" (js/Array.from (.querySelectorAll dom "script")))
@@ -234,41 +233,53 @@
           :tags {:scripts script-references
                  :links style-references}}]))))
 
-(defn update-main-window-content! [{:keys [state ui store] :as app-data} files icon-url title app-id]
-  (let [win (-> @ui :windows (get app-id))]
+(defn set-main-window-content! [state document files index-file]
+  (go
+    (let [content (<p! (get-file-contents index-file :text))
+          dom (.parseFromString dom-parser content "text/html")
+          title (.querySelector dom "title")
+          title (if title (.-textContent title) "Untitled app")
+          icon-url (extract-icon-url dom files)
+          frame (-> document (.getElementById "slingcode-frame"))
+          title-element (-> document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
+          icon-element (-> document (.querySelector "link[rel*='icon']"))
+          [index-file references] (<! (update-html-references! files index-file))]
+      (aset title-element "textContent" (or title "Untitled app"))
+      (when icon-url (.setAttribute icon-element "href" icon-url)) 
+      (aset frame "src" (js/window.URL.createObjectURL index-file))
+      (swap! state #(-> % (assoc-in [:editing :references] references))))))
+
+(defn update-main-window-content! [{:keys [state ui store] :as app-data} files app-id win]
+  (js/console.log "updating main window content")
+  (let [file (if files
+               (get-index-file files)
+               (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
+    (js/console.log "updating main window content (window)" win)
     (when win
-      (go
-        (let [frame (-> win .-document (.getElementById "result"))
-              title-element (-> win .-document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
-              icon-element (-> win .-document (.querySelector "link[rel*='icon']"))
-              file (if files
-                     (get-index-file files)
-                     (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))
-              [file references] (<! (update-html-references! files file))]
-          (aset title-element "textContent" (or title "Untitled app"))
-          (when icon-url (.setAttribute icon-element "href" icon-url)) 
-          (aset frame "src" (js/window.URL.createObjectURL file))
-          (swap! state #(-> %
-                            (assoc-in [:editing :references] references)
-                            (assoc-in [:editing :frame-window] (-> frame .-contentWindow)))))
-        (print "window after updating content")))))
+      (set-main-window-content! state (-> win .-document) files file))))
 
 (defn update-refs! [{:keys [state ui store] :as app-data} files app-id file-index]
-  (let [links (get-in @state [:editing :references :tags])
-        file-blobs (get-in @state [:editing :references :file-blobs])
-        frame-window (get-in @state [:editing :frame-window])
-        file (nth files file-index)]
-    (when links
-      (doseq [k (keys links)
-              references (links k)
-              [file-name reference-ids] references
-              reference-id reference-ids]
-        (when (= file-name (.-name file))
-          (.postMessage frame-window
-                        #js {"reference" reference-id
-                             "kind" (.substr (name k) 0 (dec (count (name k))))
-                             "url" (js/window.URL.createObjectURL file)}
-                        "*"))))))
+  (go
+    (let [win (-> @ui :windows (get app-id))
+          frame (when win (-> win .-document (.getElementById "slingcode-frame")))
+          [index-file updated-references] (<! (update-html-references! files (get-index-file files)))
+          links (get-in @state [:editing :references :tags])
+          ;file-blobs (get-in @state [:editing :references :file-blobs])
+          file-blobs (updated-references :file-blobs)
+          original-file (nth files file-index)
+          file (get file-blobs (.-name original-file))]
+      (when (and frame links)
+        (doseq [k (keys links)
+                references (links k)
+                [file-name reference-ids] references
+                reference-id reference-ids]
+          (js/console.log "Updating index.html refs" file-name (.-name file) reference-id)
+          (when (= file-name (.-name file))
+            (.postMessage (.-contentWindow frame)
+                          (clj->js {"reference" reference-id
+                                    "kind" (.substr (name k) 0 (dec (count (name k))))
+                                    "url" (js/window.URL.createObjectURL file)})
+                          "*")))))))
 
 (defn save-handler! [{:keys [state ui store] :as app-data} app-id file-index cm]
   (let [content (when (and cm (aget cm "getValue")) (.getValue cm))
@@ -281,18 +292,17 @@
     (go
       ; TODO: catch exception and warn if disk full
       (<p! (.setItem store (str "app/" app-id) (clj->js files)))
-      (let [apps (<! (get-apps-data store))]
+      (let [apps (<! (get-apps-data store))
+            file (nth files @file-index)
+            win (-> @ui :windows (get app-id))]
         (swap! state 
                #(-> %
                     (assoc :apps apps)
-                    (assoc-in [:editing :files] files))))
-      (if (= (.-name (nth files @file-index)) "index.html")
-        (let [dom (.parseFromString dom-parser content "text/html")
-              title (.querySelector dom "title")
-              icon-url (extract-icon-url dom files)
-              title (if title (.-textContent title) "Untitled app")]
-          (update-main-window-content! app-data files title icon-url app-id))
-        (update-refs! app-data files app-id @file-index)))))
+                    (assoc-in [:editing :files] files)))
+        ; TODO: postmessage telling child to update
+        (if (= (.-name file) "index.html")
+          (update-main-window-content! app-data files app-id win)
+          (update-refs! app-data files app-id @file-index))))))
 
 (defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
   (let [files (get-in @state [:editing :files])
@@ -339,12 +349,9 @@
         (swap! state update-in [:editing :editors] dissoc file-index)))))
 
 (defn launch-window! [ui id]
-  (let [win (js/window.open load-mode-qs (str "window-" id))]
-    (attach-load-event! ui id win)
+  (let [win (js/window.open (str "?app=" id) (str "window-" id))]
+    ;(attach-load-event! ui id win)
     win))
-
-(defn is-view-mode [search-string]
-  (= (.indexOf search-string load-mode-qs) 0))
 
 (defn in-string [a b]
   (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
@@ -412,21 +419,13 @@
 
 (defn open-app! [{:keys [state ui store] :as app-data} id ev]
   (.preventDefault ev)
-  (let [app (-> @state :apps (get id))
-        files (if app (app :files))
-        title (if app (app :title))
-        icon-url (if app (app :icon-url))
-        win (-> @ui :windows (get id))
+  (let [win (-> @ui :windows (get id))
         win (if (not (and win (.-closed win))) win)
         win (or win (launch-window! ui id))]
-    (.addEventListener win "load"
-                       (fn [ev]
-                         (update-main-window-content! app-data files icon-url title id)
-                         (print "window load" id)))
     (when win
       (.focus win)
       (swap! ui assoc-in [:windows id] win))
-    ; let the user know the window was blocked from opening
+    ; let the user know if the window was blocked from opening
     (js/setTimeout
       (fn [] (when (aget win "closed")
                (swap! state assoc :message blocked-message)))
@@ -687,32 +686,67 @@
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
-(defn component-child-container []
-  [:iframe#result])
+(defn component-child-container [{:keys [state ui query] :as app-data} files file app-id]
+  [:iframe#slingcode-frame
+   {:ref (fn [el]
+           ; if we weren't spawned by a slingcode editor then load our own content
+           (let [parent (.-opener js/window)]
+             (if parent
+               (.postMessage parent #js {:action "reload" :app-id app-id} "*")
+               (set-main-window-content! state js/document files file))))}])
+
+(defn receive-message [{:keys [state ui store] :as app-data} message]
+  (js/console.log "received message" message)
+  (let [action (aget message "data" "action")
+        app-id (aget message "data" "app-id")]
+    (cond (= action "reload")
+          (go
+            (let [files (<p! (.getItem store (str "app/" app-id)))]
+              (js/console.log "refreshin'"
+                              app-id
+                              (aget message "origin")
+                              (-> js/document .-location .-href))
+              (update-main-window-content! app-data files app-id (.-source message))
+              (swap! ui update-in [:windows] assoc app-id (.-source message))))
+          (= action "unload")
+          (swap! ui update-in [:windows] dissoc app-id))))
 
 ; ***** init ***** ;
 
-(defn render [app-data]
-  (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
-  (rdom/render [component-main app-data] (js/document.getElementById "app")))
-
 (defn reload! []
   (println "reload!")
-  (let [qs (-> js/document .-location .-search)]
-    (if (is-view-mode qs)
-      (rdom/render [component-child-container] (js/document.getElementById "app"))
-      (go
-        (let [store (.createInstance localforage #js {:name "slingcode-apps"})
-              stored-apps (<! (get-apps-data store))
-              state (r/atom {:apps stored-apps})
-              app-data {:state state :ui ui-state :store store}
-              first-run (nil? (js/localStorage.getItem "slingcode-has-run"))
-              default-apps (<! (zip-parse-base64 default-apps-base64-blob))]
-          (when (and first-run (= (count stored-apps) 0))
-            (<! (add-apps! state store default-apps))
-            (js/localStorage.setItem "slingcode-has-run" "true"))
-          (js/console.log "Default apps:" (clj->js default-apps))
-          (render app-data))))))
+  (let [qs (-> js/document .-location .-search)
+        qs-params (js/URLSearchParams. qs)]
+    (go
+      (let [store (.createInstance localforage #js {:name "slingcode-apps"})
+            stored-apps (<! (get-apps-data store))
+            state (r/atom {:apps stored-apps})
+            app-data {:state state :ui ui-state :store store}
+            el (js/document.getElementById "app")]
+        (if (.has qs-params "app")
+          (let [app-id (.get qs-params "app")
+                files (<p! (.getItem store (str "app/" app-id)))
+                file (get-index-file files)]
+            (.addEventListener js/window "beforeunload"
+                               (fn [ev]
+                                 (let [parent (.-opener js/window)]
+                                   (when parent
+                                     (.postMessage parent #js {:action "unload" :app-id app-id})))))
+            (rdom/render [component-child-container app-data files file app-id] el))
+          (let [first-run (nil? (js/localStorage.getItem "slingcode-has-run"))
+                default-apps (<! (zip-parse-base64 default-apps-base64-blob))
+                message-callback (partial #'receive-message app-data)
+                old-message-callback (aget js/window "message-callback")]
+            (when old-message-callback
+              (.removeEventListener js/window "message" old-message-callback))
+            (.addEventListener js/window "message"
+                               (aset js/window "message-callback" message-callback))
+            (when (and first-run (= (count stored-apps) 0))
+              (<! (add-apps! state store default-apps))
+              (js/localStorage.setItem "slingcode-has-run" "true"))
+            (js/console.log "Default apps:" (clj->js default-apps))
+            (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
+            (rdom/render [component-main app-data] el)))))))
 
 (defn main! []
   (println "main!")
