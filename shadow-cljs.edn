@@ -7,5 +7,6 @@
                 :output-dir "public/js"
                 :asset-path "js"
                 :modules {:main {:init-fn slingcode.main/main!}}
-                :devtools {:after-load slingcode.main/reload!}
+                :devtools {:after-load slingcode.main/reload!
+                           :preloads [shadow.remote.runtime.cljs.browser]}
                 :release {:output-dir "build/js"}}}}
