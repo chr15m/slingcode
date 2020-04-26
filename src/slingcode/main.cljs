@@ -299,7 +299,6 @@
                #(-> %
                     (assoc :apps apps)
                     (assoc-in [:editing :files] files)))
-        ; TODO: postmessage telling child to update
         (if (= (.-name file) "index.html")
           (update-main-window-content! app-data files app-id win)
           (update-refs! app-data files app-id @file-index))))))
