@@ -9,7 +9,7 @@ BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
 slingcode.net: slingcode.net/index.html slingcode.net/publish.html slingcode.net/slingcode.html slingcode.net/license.txt slingcode.net/revision.txt
 
-slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt
+slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt build/index.html
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
 
