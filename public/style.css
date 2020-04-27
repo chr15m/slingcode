@@ -378,6 +378,7 @@ div.app .link-out svg {
   display: inline-block;
   padding: 1em;
   vertical-align: top;
+  min-width: 25%;
 }
 
 @media (max-width: 600px) {
@@ -439,9 +440,11 @@ button#add-app {
   border-radius: 2em;
   width: 64px;
   height: 64px;
-  border: 0px;
+  text-align: center;
   color: #232a25;
   border: 4px solid #232a25;
+  margin: 0px;
+  padding: 0px;
 }
 
 #add-app:hover {
