@@ -15,6 +15,7 @@
     ["codemirror/mode/xml/xml" :as xml]
     ["codemirror/mode/css/css" :as css]
     ["codemirror/mode/javascript/javascript" :as javascript]
+    ["@ungap/url-search-params" :as URLSearchParams]
     ["bugout" :as Bugout]
     ["tweetnacl" :as nacl]))
 
@@ -738,7 +739,7 @@
 (defn reload! []
   (println "reload!")
   (let [qs (-> js/document .-location .-search)
-        qs-params (js/URLSearchParams. qs)]
+        qs-params (URLSearchParams. qs)]
     (go
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
             stored-apps (<! (get-apps-data store))
