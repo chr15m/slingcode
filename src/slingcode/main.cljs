@@ -810,7 +810,7 @@
             el (js/document.getElementById "app")]
         (if (.has qs-params "app")
           (let [app-id (.get qs-params "app")
-                files (<p! (.getItem store (str "app/" app-id)))
+                files (<p! (retrieve-files store app-id))
                 file (get-index-file files)]
             (.addEventListener js/window "beforeunload"
                                (fn [ev]
