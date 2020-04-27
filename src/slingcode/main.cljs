@@ -689,19 +689,19 @@
                                                              [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
                     :else [component-codemirror-block app-data app-id file i tab-index])])))]]))
 
-(defn component-list-app [{:keys [state ui] :as app-data} id app]
+(defn component-list-app [{:keys [state ui] :as app-data} app-id app]
   [:div.app
    [:div.columns
     [:div.column
      [:div (if (app :icon-url)
              [:img.app-icon {:src (app :icon-url)}]
              [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
-     [:div [:button {:on-click (partial edit-app! app-data id nil) :title "Edit app"} [component-icon :code]]]
-     [:div [:button {:on-click (partial download-zip! app-data id (app :title)) :title "Save zip"} [component-icon :download]]]]
+     [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app"} [component-icon :code]]]
+     [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save zip"} [component-icon :download]]]]
     [:div.column
-     [:a.title {:href (js/window.URL.createObjectURL (get-index-file (app :files)))
-                :on-click (partial open-app! app-data id)
-                :target (str "window-" id)}
+     [:a.title {:href (str "?app=" app-id)
+                :on-click (partial open-app! app-data app-id)
+                :target (str "window-" app-id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
      [:p (app :description)]
      [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]
