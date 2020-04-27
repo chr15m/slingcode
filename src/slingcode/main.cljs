@@ -37,6 +37,12 @@
 (def blocked-message {:level :warning
                       :text "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh."})
 
+; only old Safari iOS needs this check
+(def can-make-files
+  (try
+    (when (js/File. #js ["hello."] "hello.txt" #js {:type "text/plain"}) true)
+    (catch :default e false)))
+
 (comment
   (def b (Bugout. "i-am-a-room"))
 
@@ -52,8 +58,18 @@
 
 ; ***** data ***** ;
 
+(defn make-file [content file-name args]
+  (let [blob-content (clj->js [content])
+        args (clj->js args)]
+    (if can-make-files
+      (js/File. blob-content file-name args)
+      (let [f (js/Blob. blob-content args)]
+          (aset f "name" file-name)
+          (aset f "lastModified" (js/Date.))
+          f))))
+
 (defn make-boilerplate-files []
-  [(js/File. #js [boilerplate] "index.html" #js {:type "text/html"})])
+  [(make-file boilerplate "index.html" {:type "text/html"})])
 
 (defn extract-id [store-key]
   (let [id (.pop (.split store-key "/"))]
@@ -62,20 +78,66 @@
 (defn get-index-file [files]
   (first (filter #(= (.-name %) "index.html") files)))
 
+(defn base64-to-blob [data-uri]
+  ; TODO: remove this when old iPads pepper the netherworld
+  (let [[header base64-string] (.split data-uri ",")
+        byte-string (js/atob base64-string)
+        content-type (-> header (.split ":") second (.split ";") first)
+        ab (js/ArrayBuffer. (.-length byte-string))
+        ia (js/Uint8Array. ab)]
+    (doseq [i (range (.-length byte-string))]
+      (aset ia i (.charCodeAt byte-string i)))
+    (js/Blob. (clj->js [ab]) (clj->js {:type content-type}))))
+
 (defn get-file-contents [file result-type]
-  "Wrapper hack to support older Chrome."
   (if file
     (if (aget file "text")
-      (if (= result-type :array-buffer)
-        (.arrayBuffer file)
+      (case result-type
+        :array-buffer (.arrayBuffer file)
+        :binary-string (.arrayBuffer file)
         (.text file))
+      ; wrapper hack to support older chrome versions
+      ; TODO: remove when support is good across browsers
       (js/Promise. (fn [res rej]
                      (let [fr (js/FileReader.)]
                        (aset fr "onload" (fn [done] (res (.-result fr))))
-                       (if (= result-type :array-buffer)
-                         (.readAsArrayBuffer fr file)
+                       (case result-type
+                         :array-buffer (.readAsArrayBuffer fr file)
+                         :binary-string (.readAsBinaryString fr file)
+                         :data-url (.readAsDataURL fr file)
                          (.readAsText fr file))))))
     (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer.) ""))))))
+
+(defn store-files [store app-id files]
+  (if can-make-files
+    ; TODO: warn user if storage full or error writing
+    (.setItem store (str "app/" app-id) (clj->js files))
+    ; all of the following complex serialization and deserialization
+    ; is neccessary because of the way iOS Safari 9 + localForage
+    ; handle Files embedded within a deeper structure
+    ; TODO: remove when all browsers support localForage blob arrays
+    (js/Promise
+      (fn [res err]
+        (go
+          (let [file-chans (map (fn [f]
+                                  (go
+                                    (let [content {:name (.-name f)
+                                                   :type (.-type f)
+                                                   :lastModified (.-lastModified f)
+                                                   :content (<p! (get-file-contents f :data-url))}]
+                                      [content]))) files)
+                files (<! (async/map concat file-chans))]
+            (res (<p! (.setItem store (str "app/" app-id) (clj->js files))))))))))
+
+(defn retrieve-files [store app-id]
+  (if can-make-files
+    (.getItem store (str "app/" app-id))
+    ; Safari why (TODO: remove when fn section above is removed)
+    (js/Promise.
+      (fn [res err]
+        (go
+          (let [files (js->clj (<p! (.getItem store (str "app/" app-id))))]
+            (res (map #(make-file (base64-to-blob (get % "content")) (get % "name") {:type (get % "type")}) files))))))))
 
 (defn get-files-map [files]
   (into {} (map (fn [f] {(.-name f) f}) files)))
@@ -94,7 +156,7 @@
           app-chans (when (not-empty store-keys)
                       (map (fn [[id store-key]]
                              (go
-                               (let [files (<p! (.getItem store store-key))
+                               (let [files (<p! (retrieve-files store id))
                                      index-html (get-index-file files)
                                      src (<p! (get-file-contents index-html :text))
                                      dom (.parseFromString dom-parser src "text/html")
@@ -129,7 +191,7 @@
     (let [slug (make-slug title)
           zip (JSZip.)
           folder (.folder zip slug)
-          files (<p! (.getItem store (str "app/" id)))
+          files (<p! (retrieve-files store id))
           blob-promises (.map files (fn [f] (get-file-contents f :array-buffer)))
           blobs (<p! (js/Promise.all blob-promises))]
       (doseq [i (range (count files))]
@@ -137,7 +199,7 @@
               blob (nth blobs i)]
           (.file folder (.-name file) blob)))
       (let [zip-blob (<p! (.generateAsync zip #js {:type "blob"}))
-            zipfile (js/File. (clj->js [zip-blob]) (str slug ".zip") #js {:type "application/zip"})]
+            zipfile (make-file zip-blob (str slug ".zip") {:type "application/zip"})]
         zipfile))))
 
 (defn get-valid-type [file]
@@ -204,7 +266,7 @@
     (if (= (.-type file) content-type)
       (let [src (<p! (get-file-contents file :text))
             src (replace-text-refs file-blobs src regex)]
-        {file-name (js/File. (clj->js [src]) (.-name file) #js {:type (.-type file)})})
+        {file-name (make-file src (.-name file) {:type (.-type file)})})
       {file-name file})))
 
 (defn replace-file-blobs-refs [file-blobs content-type regex]
@@ -244,7 +306,7 @@
         (aset resource-updater "textContent" (str resource-updater-source))
         (.appendChild html resource-updater))
       (let [updated-dom-string (str "<!DOCTYPE html>\n" (-> dom .-documentElement .-outerHTML))]
-        [(js/File. (clj->js [updated-dom-string]) (.-name file) #js {:type (.-type file)})
+        [(make-file updated-dom-string (.-name file) {:type (.-type file)})
          {:file-blobs file-blobs
           :tags {:scripts script-references
                  :links style-references}}]))))
@@ -269,7 +331,7 @@
   (js/console.log "updating main window content")
   (let [file (if files
                (get-index-file files)
-               (js/File. #js [not-found-app] "index.html" #js {:type "text/html"}))]
+               (make-file not-found-app "index.html" {:type "text/html"}))]
     (js/console.log "updating main window content (window)" win)
     (when win
       (set-main-window-content! state (-> win .-document) files file))))
@@ -302,12 +364,11 @@
         files (get-in @state [:editing :files])
         files (vec (map-indexed (fn [i f]
                                   (if (and (= @file-index i) content)
-                                    (js/File. #js [content] (.-name f) #js {:type (get-valid-type f)})
+                                    (make-file content (.-name f) {:type (get-valid-type f)})
                                     f))
                                 files))]
     (go
-      ; TODO: catch exception and warn if disk full
-      (<p! (.setItem store (str "app/" app-id) (clj->js files)))
+      (<p! (store-files store app-id files))
       (let [apps (<! (get-apps-data store))
             file (nth files @file-index)
             win (-> @ui :windows (get app-id))]
@@ -323,8 +384,7 @@
   (let [files (get-in @state [:editing :files])
         files (vec (concat (subvec files 0 file-index) (subvec files (inc file-index))))]
     (go
-      ; TODO: catch exception and warn if disk full
-      (<p! (.setItem store (str "app/" app-id) (clj->js files)))
+      (<p! (store-files store app-id files))
       (let [apps (<! (get-apps-data store))]
         (swap! state #(-> %
                           (assoc :apps apps)
@@ -386,8 +446,9 @@
   ; infact contains a reasonable web app
   (go
     (let [store-chans (map (fn [[n files]]
-                             (go (let [id (str (random-uuid))]
-                                   {id {:files (<p! (.setItem store (str "app/" id) (clj->js files)))}})))
+                             (go (let [id (str (random-uuid))
+                                       files (<p! (store-files store id files))]
+                                   {id {:files files}})))
                            apps-to-add)
           store-results (<! (async/map merge store-chans))]
       (swap! state assoc :apps (<! (get-apps-data store)))
@@ -403,10 +464,11 @@
   (go
     (let [[folder filename] (zip-parse-extract-valid-dir-and-file (.-name file))
           zipped-file-blob (<p! (.async file "blob"))
-          mime-type (or (mime-types/lookup filename) "application/octet-stream")]
-      {folder [(js/File. (clj->js [zipped-file-blob])
-                         filename
-                         (clj->js {:type (or (mime-types/lookup filename) "application/octet-stream")}))]})))
+          mime-type (or (mime-types/lookup filename) "application/octet-stream")
+          updated-file (make-file zipped-file-blob
+                                  filename
+                                  {:type (or (mime-types/lookup filename) "application/octet-stream")})]
+      {folder [updated-file]})))
 
 (defn zip-extract [zip]
   (go
@@ -449,7 +511,7 @@
 (defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
   (.preventDefault ev)
   (go
-    (let [files (vec (or files (<p! (.getItem store (str "app/" id)))))]
+    (let [files (vec (or files (<p! (retrieve-files store id))))]
       (swap! state assoc :mode :edit :editing {:id id :files files :tab-index 0 :editors {}}))))
 
 (defn close-editor! [state ev]
@@ -530,14 +592,14 @@
         file (first files)
         file-name (ensure-unique-filename (-> @state :editing :files) (.-name file))
         file-type (get-valid-type file)
-        file (js/File. #js [file] file-name {:type file-type})]
+        file (make-file file file-name {:type file-type})]
     (add-file! app-data file)))
 
 (defn create-empty-file! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
   (let [file-name (js/prompt "Filename:")
         file (when (and file-name (not= file-name ""))
-               (js/File. #js [""] file-name {:type (or (mime-types/lookup file-name) "text/plain")}))]
+               (make-file "" file-name {:type (or (mime-types/lookup file-name) "text/plain")}))]
     (when file
       (add-file! app-data file))))
 
@@ -724,7 +786,7 @@
         app-id (aget message "data" "app-id")]
     (cond (= action "reload")
           (go
-            (let [files (<p! (.getItem store (str "app/" app-id)))]
+            (let [files (<p! (retrieve-files store app-id))]
               (js/console.log "refreshin'"
                               app-id
                               (aget message "origin")
