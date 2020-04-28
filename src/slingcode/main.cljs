@@ -552,7 +552,6 @@
          (fn [s]
            (let [mode (s :mode)
                  mode-last (s :mode-last)]
-             (tap> [mode mode-last])
              (if (= mode :about)
                (-> s
                    (assoc :mode mode-last)
@@ -720,9 +719,7 @@
                 :target (str "window-" app-id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
      [:p (app :description)]
-     [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]
-   ; [:div.actions [:button [component-icon :share]]]
-   ])
+     [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]])
 
 (defn component-about [state]
   [:section#about.screen
@@ -820,6 +817,7 @@
         qs-params (URLSearchParams. qs)]
     (go
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
+            ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
             state (r/atom {:apps stored-apps})
             app-data {:state state :ui ui-state :store store}
@@ -847,6 +845,7 @@
                 (js/localStorage.setItem "slingcode-has-run" "true")))
             (js/console.log "Default apps:" (clj->js default-apps))
             (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
+            (tap> {"apps" ((deref (app-data :state)) :apps)})
             (rdom/render [component-main app-data] el)))))))
 
 (defn main! []
