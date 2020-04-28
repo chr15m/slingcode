@@ -423,11 +423,6 @@
               (swap! state assoc-in [:editing :editors file-index] cm))))
         (swap! state update-in [:editing :editors] dissoc file-index)))))
 
-(defn launch-window! [ui id]
-  (let [win (js/window.open (str "?app=" id) (str "window-" id))]
-    ;(attach-load-event! ui id win)
-    win))
-
 (defn in-string [a b]
   (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
 
@@ -498,7 +493,7 @@
   (.preventDefault ev)
   (let [win (-> @ui :windows (get id))
         win (if (not (and win (.-closed win))) win)
-        win (or win (launch-window! ui id))]
+        win (or win (js/window.open (str "?app=" id) (str "window-" id)))]
     (when win
       (.focus win)
       (swap! ui assoc-in [:windows id] win))
