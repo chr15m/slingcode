@@ -559,6 +559,9 @@
                    (dissoc :mode-last))
                (assoc s :mode :about :mode-last mode))))))
 
+(defn show-app-actions-menu! [state app-id]
+  (swap! state update-in [:actions-menu] #(if (= % app-id) nil app-id)))
+
 (defn toggle-add-menu! [state ev]
   (.preventDefault ev)
   (swap! state update-in [:add-menu] not))
@@ -705,8 +708,11 @@
      [:div (if (app :icon-url)
              [:img.app-icon {:src (app :icon-url)}]
              [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
-     [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app"} [component-icon :code]]]
-     [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save zip"} [component-icon :download]]]]
+     [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :code]]]
+     (when (= (@state :actions-menu) app-id)
+       [:div.app-actions-menu
+        [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save app zip"} [component-icon :download]]]])
+     [:div [:button {:on-click (partial show-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
     [:div.column
      [:a.title {:href (str "?app=" app-id)
                 :on-click (partial open-app! app-data app-id)

@@ -355,6 +355,21 @@ div.app .link-out svg {
   margin-left: 0.5em;
 }
 
+div.app .app-actions-menu {
+  border-radius: 5px;
+  border: 2px solid #E5B413;
+  width: 160px;
+  text-align: center;
+  background-color: #232A25;
+  margin-left: 120px;
+  position: absolute;
+}
+
+div.app .app-actions-menu > div {
+  padding: 0px;
+  margin: 0.5em 0px;
+}
+
 #apps .columns {
   display: flex;
 }
