@@ -711,6 +711,7 @@
      [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :code]]]
      (when (= (@state :actions-menu) app-id)
        [:div.app-actions-menu
+        [:div [:button {:on-click (partial edit-app! app-data (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
         [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save app zip"} [component-icon :download]]]])
      [:div [:button {:on-click (partial show-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
     [:div.column
