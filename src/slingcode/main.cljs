@@ -548,7 +548,16 @@
 
 (defn toggle-about-screen! [state ev]
   (.preventDefault ev)
-  (swap! state update-in [:mode] (fn [mode] (if (not= mode :about) :about))))
+  (swap! state
+         (fn [s]
+           (let [mode (s :mode)
+                 mode-last (s :mode-last)]
+             (tap> [mode mode-last])
+             (if (= mode :about)
+               (-> s
+                   (assoc :mode mode-last)
+                   (dissoc :mode-last))
+               (assoc s :mode :about :mode-last mode))))))
 
 (defn toggle-add-menu! [state ev]
   (.preventDefault ev)
@@ -728,7 +737,7 @@
       [:div#logo
        [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
        [:span "Slingcode"]
-       [:nav [:a {:href "#" :on-click (partial toggle-about-screen! state)} "About"]]
+       [:nav (when (nil? mode) [:a {:href "#" :on-click (partial toggle-about-screen! state)} "About"])]
        [:svg {:width "100%" :height "60px"}
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
