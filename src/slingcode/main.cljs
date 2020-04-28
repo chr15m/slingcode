@@ -553,7 +553,7 @@
                    (dissoc :mode-last))
                (assoc s :mode :about :mode-last mode))))))
 
-(defn show-app-actions-menu! [state app-id]
+(defn toggle-app-actions-menu! [state app-id]
   (swap! state update-in [:actions-menu] #(if (= % app-id) nil app-id)))
 
 (defn toggle-add-menu! [state ev]
@@ -704,10 +704,10 @@
              [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
      [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :code]]]
      (when (= (@state :actions-menu) app-id)
-       [:div.app-actions-menu
+       [:div.app-actions-menu {:on-mouse-leave (partial toggle-app-actions-menu! state nil)}
         [:div [:button {:on-click (partial edit-app! app-data (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
         [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save app zip"} [component-icon :download]]]])
-     [:div [:button {:on-click (partial show-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
+     [:div [:button {:on-click (partial toggle-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
     [:div.column
      [:a.title {:href (str "?app=" app-id)
                 :on-click (partial open-app! app-data app-id)
@@ -766,7 +766,7 @@
               [:div {:key id} [component-list-app app-data id app]])
 
             (when (@state :add-menu)
-              [:div#add-menu
+              [:div#add-menu {:on-mouse-leave (partial toggle-add-menu! state)}
                [:ul
                 [:li [:a {:href "#"
                           :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))}
