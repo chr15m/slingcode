@@ -315,11 +315,15 @@ section#apps {
   padding: 1em;
 }
 
-section#about {
+section#about, section#send {
   width: 100%;
   max-width: 800px;
   padding: 1em;
   padding-top: 0px;
+}
+
+section#send ul li.completed {
+  list-style-type: "✔";
 }
 
 /*** individual app ***/
