@@ -521,6 +521,16 @@
     (let [zipfile (<! (make-zip store id title))]
       (js/window.open (js/window.URL.createObjectURL zipfile)))))
 
+(defn add-zip-file! [{:keys [state store ui] :as app-data} zipfile ev]
+  ; TODO: some kind of interaction to tell the user what is in the file
+  (go (let [apps (<! (zip-parse-file zipfile))
+            added-apps (<! (add-apps! state store apps))]
+        (if (= (count added-apps) 1)
+          (edit-app! app-data (first (first added-apps)) nil ev)
+          (swap! state assoc
+                 :message {:level :success :text (str "Added " (count added-apps) " apps.")}
+                 :add-menu nil)))))
+
 (defn room-name-from-secret [secret]
   (clojure.string/join " "
                        (concat
@@ -636,14 +646,7 @@
 (defn initiate-zip-upload! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))]
-    (go (let [apps (<! (zip-parse-file (first files)))]
-          ; TODO: some kind of interaction to tell the user what is in the file
-          (let [added-apps (<! (add-apps! state store apps))]
-            (if (= (count added-apps) 1)
-              (edit-app! app-data (first (first added-apps)) nil ev)
-              (swap! state assoc
-                     :message {:level :success :text (str "Added " (count added-apps) " apps.")}
-                     :add-menu nil)))))))
+    (add-zip-file! app-data (first files) ev)))
 
 (defn increment-filename [f]
   (let [[_ file-part _ increment extension] (.exec #"(.*?)(-([0-9]+)){0,1}(?:\.([^.]+))?$" f)]
