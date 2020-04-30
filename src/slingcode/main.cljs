@@ -613,7 +613,8 @@
            (fn [byte-count]
              (swap! state assoc-in [:send :status :sending] true)))
 
-      (swap! state assoc :send {:bugout-instance bugout-instance
+      (swap! state assoc :send {:title title
+                                :bugout-instance bugout-instance
                                 :webtorrent webtorrent-instance
                                 :status {}})
 
@@ -717,9 +718,11 @@
 (defn component-send [{:keys [state ui] :as app-data}]
   (let [status (or (get-in @state [:send :status]) {})
         bugout (get-in @state [:send :bugout-instance])
+        title (get-in @state [:send :title])
         completed-class {:class "completed"}]
     [:section#send.screen
-     [:p "Sending app"]
+     [:p (str "Ready to send" (when title (str " '" title "'")) ".")]
+     [:p "Select 'receive' on your other device."]
      (when (not (status :done)) [:div#send-spinner "Sending..."])
      [:ul
       [:li (when (status :seen) completed-class) "Seen other device."]
