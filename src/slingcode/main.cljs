@@ -20,12 +20,13 @@
     ["tweetnacl" :as nacl]
     ["tweetnacl-auth" :as nacl-auth]
     ["bs58" :as bs58]
-    ["niceware" :as niceware]))
+    ["niceware" :as niceware]
+    ["webtorrent" :as webtorrent]))
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
 (defonce ui-state (r/atom {}))
-(defonce dom-parser (js/DOMParser.))
+(def dom-parser (js/DOMParser.))
 (def re-uuid (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
 (def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
 (def re-css-url (js/RegExp. "url\\([\"']{0,1}(.*?)[\"']{0,1}\\)" "gi"))
@@ -45,6 +46,9 @@
   (try
     (when (js/File. #js ["hello."] "hello.txt" #js {:type "text/plain"}) true)
     (catch :default e false)))
+
+; check if this platform can do webtorrenting
+(def can-p2p webtorrent/WEBRTC_SUPPORT)
 
 ; ***** data ***** ;
 
@@ -569,100 +573,102 @@
 (defn receive-app! [{:keys [state ui store] :as app-data} human-readable-one-time-secret ev]
   (.preventDefault ev)
   (swap! state assoc :mode :receive :receive {:status {:initiated true}})
-  (let [human-readable-one-time-secret (vec (.split human-readable-one-time-secret " "))
-        passphrase-tokens (filter #(and % (not= % "")) human-readable-one-time-secret)
-        one-time-secret (niceware/passphraseToBytes (clj->js passphrase-tokens))
-        bugout-address-hash-prefix (.slice one-time-secret 0 4)
-        bugout-secret (.slice one-time-secret 4 8)
-        hmac-key (nacl/hash bugout-secret)
-        room-name (room-name-from-secret one-time-secret)
-        bugout-instance (Bugout. room-name)
-        webtorrent-instance (.-wt bugout-instance)]
-    (swap! state assoc-in [:receive :bugout-instance] bugout-instance)
-    (.on bugout-instance "seen"
-         (fn [address]
-           (.send bugout-instance address (clj->js {"secret" human-readable-one-time-secret}))
-           (swap! state assoc-in [:receive :status :seen] true)))
-    (.on bugout-instance "message"
-         (fn [address message]
-           (let [torrent-hash (aget message "torrent-hash")
-                 encryption-key (js/Uint8Array.from (aget message "encryption-key"))
-                 encryption-nonce (js/Uint8Array.from (aget message "encryption-nonce"))
-                 bugout-address-raw (bs58/decode address)
-                 bugout-address-hash-prefix-check (one-time-secret-first-half bugout-address-raw hmac-key)]
-             (when (and torrent-hash
-                        encryption-key
-                        encryption-nonce
-                        (nacl/verify bugout-address-hash-prefix bugout-address-hash-prefix-check))
-               (.add webtorrent-instance
-                     (str "magnet:?xt=urn:btih:" torrent-hash)
-                     (clj->js {"announce" (.-announce bugout-instance)})
-                     (fn [torrent]
-                       (swap! state assoc-in [:receive :status :downloading] true)      
-                       (.on torrent "done"
-                            (fn []
-                              (.send bugout-instance address (clj->js {"secret" human-readable-one-time-secret
-                                                                       "done" true}))
-                              (go
-                                (let [file-name (str (aget (first (.-files torrent)) "name") ".zip")
-                                      encrypted-zip (<! (extract-torrent-file torrent))
-                                      zipfile-buffer-encrypted (js/Uint8Array. (<p! (get-file-contents encrypted-zip :array-buffer)))
-                                      zipfile-buffer (.open nacl/secretbox zipfile-buffer-encrypted encryption-nonce encryption-key)
-                                      zipfile (make-file (.-buffer zipfile-buffer) file-name #js {:type "application/zip"})]
-                                  (stop-sending-receiving! app-data :receive ev)
-                                  (add-zip-file! app-data zipfile ev))
-                                (swap! state assoc-in [:receive :status :done] true))))))))))))
+  (when can-p2p
+    (let [human-readable-one-time-secret (vec (.split human-readable-one-time-secret " "))
+          passphrase-tokens (filter #(and % (not= % "")) human-readable-one-time-secret)
+          one-time-secret (niceware/passphraseToBytes (clj->js passphrase-tokens))
+          bugout-address-hash-prefix (.slice one-time-secret 0 4)
+          bugout-secret (.slice one-time-secret 4 8)
+          hmac-key (nacl/hash bugout-secret)
+          room-name (room-name-from-secret one-time-secret)
+          bugout-instance (Bugout. room-name)
+          webtorrent-instance (.-wt bugout-instance)]
+      (swap! state assoc-in [:receive :bugout-instance] bugout-instance)
+      (.on bugout-instance "seen"
+           (fn [address]
+             (.send bugout-instance address (clj->js {"secret" human-readable-one-time-secret}))
+             (swap! state assoc-in [:receive :status :seen] true)))
+      (.on bugout-instance "message"
+           (fn [address message]
+             (let [torrent-hash (aget message "torrent-hash")
+                   encryption-key (js/Uint8Array.from (aget message "encryption-key"))
+                   encryption-nonce (js/Uint8Array.from (aget message "encryption-nonce"))
+                   bugout-address-raw (bs58/decode address)
+                   bugout-address-hash-prefix-check (one-time-secret-first-half bugout-address-raw hmac-key)]
+               (when (and torrent-hash
+                          encryption-key
+                          encryption-nonce
+                          (nacl/verify bugout-address-hash-prefix bugout-address-hash-prefix-check))
+                 (.add webtorrent-instance
+                       (str "magnet:?xt=urn:btih:" torrent-hash)
+                       (clj->js {"announce" (.-announce bugout-instance)})
+                       (fn [torrent]
+                         (swap! state assoc-in [:receive :status :downloading] true)
+                         (.on torrent "done"
+                              (fn []
+                                (.send bugout-instance address (clj->js {"secret" human-readable-one-time-secret
+                                                                         "done" true}))
+                                (go
+                                  (let [file-name (str (aget (first (.-files torrent)) "name") ".zip")
+                                        encrypted-zip (<! (extract-torrent-file torrent))
+                                        zipfile-buffer-encrypted (js/Uint8Array. (<p! (get-file-contents encrypted-zip :array-buffer)))
+                                        zipfile-buffer (.open nacl/secretbox zipfile-buffer-encrypted encryption-nonce encryption-key)
+                                        zipfile (make-file (.-buffer zipfile-buffer) file-name #js {:type "application/zip"})]
+                                    (stop-sending-receiving! app-data :receive ev)
+                                    (add-zip-file! app-data zipfile ev))
+                                  (swap! state assoc-in [:receive :status :done] true)))))))))))))
 
 (defn send-app! [{:keys [state ui store] :as app-data} app-id files title ev]
   (.preventDefault ev)
   (swap! state assoc :mode :send)
-  (go
-    (let [bugout-secret (.randomBytes nacl 4)
-          hmac-key (nacl/hash bugout-secret)
-          bugout-keypair (nacl/sign.keyPair)
-          bugout-address (Bugout/address (aget bugout-keypair "publicKey"))
-          bugout-address-raw (bs58/decode bugout-address)
-          bugout-address-hash-prefix (one-time-secret-first-half bugout-address-raw hmac-key)
-          one-time-secret (let [u (js/Uint8Array. 8)]
-                            (.set u bugout-address-hash-prefix)
-                            (.set u bugout-secret 4)
-                            u)
-          human-readable-one-time-secret (vec (niceware/bytesToPassphrase one-time-secret))
-          room-name (room-name-from-secret one-time-secret)
-          encryption-key (.randomBytes nacl 32) ; used to encrypt the zip
-          encryption-nonce (.randomBytes nacl 24)
-          zipfile (<! (make-zip store app-id title))
-          zipfile-buffer (js/Uint8Array. (<p! (get-file-contents zipfile :array-buffer)))
-          encrypted-zipfile (.secretbox nacl zipfile-buffer encryption-nonce encryption-key)
-          ; TODO: use settings from config page
-          bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair}))
-          torrent (<! (seed-webtorrent bugout-instance encrypted-zipfile title))]
+  (when can-p2p
+    (go
+      (let [bugout-secret (.randomBytes nacl 4)
+            hmac-key (nacl/hash bugout-secret)
+            bugout-keypair (nacl/sign.keyPair)
+            bugout-address (Bugout/address (aget bugout-keypair "publicKey"))
+            bugout-address-raw (bs58/decode bugout-address)
+            bugout-address-hash-prefix (one-time-secret-first-half bugout-address-raw hmac-key)
+            one-time-secret (let [u (js/Uint8Array. 8)]
+                              (.set u bugout-address-hash-prefix)
+                              (.set u bugout-secret 4)
+                              u)
+            human-readable-one-time-secret (vec (niceware/bytesToPassphrase one-time-secret))
+            room-name (room-name-from-secret one-time-secret)
+            encryption-key (.randomBytes nacl 32) ; used to encrypt the zip
+            encryption-nonce (.randomBytes nacl 24)
+            zipfile (<! (make-zip store app-id title))
+            zipfile-buffer (js/Uint8Array. (<p! (get-file-contents zipfile :array-buffer)))
+            encrypted-zipfile (.secretbox nacl zipfile-buffer encryption-nonce encryption-key)
+            ; TODO: use settings from config page
+            bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair}))
+            torrent (<! (seed-webtorrent bugout-instance encrypted-zipfile title))]
 
-      (.on bugout-instance "seen"
-           (fn [address]
-             (swap! state assoc-in [:send :status :seen] true)))
+        (.on bugout-instance "seen"
+             (fn [address]
+               (swap! state assoc-in [:send :status :seen] true)))
 
-      (.on bugout-instance "message"
-           (fn [address message]
-             (let [secret (vec (aget message "secret"))
-                   done (aget message "done")]
-               (when (= secret human-readable-one-time-secret)
-                 (if done
-                   (swap! state assoc-in [:send :status :done] true)
-                   (do
-                     (.send bugout-instance address (clj->js {"encryption-key" (js/Array.from encryption-key)
-                                                              "encryption-nonce" (js/Array.from encryption-nonce)
-                                                              "torrent-hash" (.-infoHash torrent)}))
-                     (swap! state assoc-in [:send :status :replied] true)))))))
+        (.on bugout-instance "message"
+             (fn [address message]
+               (let [secret (vec (aget message "secret"))
+                     done (aget message "done")]
+                 (when (= secret human-readable-one-time-secret)
+                   (if done
+                     (swap! state assoc-in [:send :status :done] true)
+                     (do
+                       (.send bugout-instance address (clj->js {"encryption-key" (js/Array.from encryption-key)
+                                                                "encryption-nonce" (js/Array.from encryption-nonce)
+                                                                "torrent-hash" (.-infoHash torrent)}))
+                       (swap! state assoc-in [:send :status :replied] true)))))))
 
-      (.on torrent "upload"
-           (fn [byte-count]
-             (swap! state assoc-in [:send :status :sending] true)))
+        (.on torrent "upload"
+             (fn [byte-count]
+               (swap! state assoc-in [:send :status :sending] true)))
 
-      (swap! state assoc :send {:title title
-                                :secret human-readable-one-time-secret
-                                :bugout-instance bugout-instance
-                                :status {}}))))
+        (swap! state assoc :send {:title title
+                                  :secret human-readable-one-time-secret
+                                  :bugout-instance bugout-instance
+                                  :status {}})))))
 
 ; ***** events ***** ;
 
@@ -733,26 +739,33 @@
 
 ; ***** views ***** ;
 
+(defn component-no-p2p [state]
+  [:section#send.screen
+       [:p "Sorry, your browser doesn't support peer-to-peer WebRTC connections."]
+       [:button {:on-click #(swap! state dissoc :mode)} "Ok"]])
+
 (defn component-receive [{:keys [state ui] :as app-data}]
   (let [secret (r/cursor state [:receive :secret])
         status (or (get-in @state [:receive :status]) {})
         bugout (get-in @state [:receive :bugout-instance])
         completed-class {:class "completed"}]
-    (if (status :initiated)
-      [:section#send.screen
-       [:p (str "Ready to receive.")]
-       (when (not (status :done)) [:div#send-spinner "Receiving..."])
-       [:ul
-        [:li (when (status :seen) completed-class) "Seen other device."]
-        [:li (when (status :downloading) completed-class) "Downloading the app."]
-        [:li (when (status :done) completed-class) "Done."]]
-       (when bugout
-         [:button {:on-click (partial stop-sending-receiving! app-data :receive)} (if (status :done) "Ok" "Cancel")])]
-      [:section#send.screen
-       [:p (str "Enter the 'send secret' from the other device to start receiving.")]
-       [:p
-        [:input#send-secret {:value @secret :placeholder "Enter 'send secret'..." :on-change #(reset! secret (-> % .-target .-value))}]]
-       [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]])))
+    (if can-p2p
+      (if (status :initiated)
+        [:section#send.screen
+         [:p (str "Ready to receive.")]
+         (when (not (status :done)) [:div#send-spinner "Receiving..."])
+         [:ul
+          [:li (when (status :seen) completed-class) "Seen other device."]
+          [:li (when (status :downloading) completed-class) "Downloading the app."]
+          [:li (when (status :done) completed-class) "Done."]]
+         (when bugout
+           [:button {:on-click (partial stop-sending-receiving! app-data :receive)} (if (status :done) "Ok" "Cancel")])]
+        [:section#send.screen
+         [:p (str "Enter the 'send secret' from the other device to start receiving.")]
+         [:p
+          [:input#send-secret {:value @secret :placeholder "Enter 'send secret'..." :on-change #(reset! secret (-> % .-target .-value))}]]
+         [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]])
+      [component-no-p2p state])))
 
 (defn component-secret [secret secret-field]
   (when secret
@@ -772,17 +785,19 @@
         secret-field (r/atom nil)
         title (get-in @state [:send :title])
         completed-class {:class "completed"}]
-    [:section#send.screen
-     [:p [:strong (str "Ready to send" (when title (str " '" title "'")) ".")]]
-     [component-secret secret secret-field]
-     (when (not (status :done)) [:div#send-spinner "Sending..."])
-     [:ul
-      [:li (when (status :seen) completed-class) "Seen other device."]
-      [:li (when (status :replied) completed-class) "Replied to request."]
-      [:li (when (status :sending) completed-class) "Sending data."]
-      [:li (when (status :done) completed-class) "Done."]]
-     (when bugout
-       [:button {:on-click (partial stop-sending-receiving! app-data :send)} (if (status :done) "Ok" "Cancel")])]))
+    (if can-p2p
+      [:section#send.screen
+       [:p [:strong (str "Ready to send" (when title (str " '" title "'")) ".")]]
+       [component-secret secret secret-field]
+       (when (not (status :done)) [:div#send-spinner "Sending..."])
+       [:ul
+        [:li (when (status :seen) completed-class) "Seen other device."]
+        [:li (when (status :replied) completed-class) "Replied to request."]
+        [:li (when (status :sending) completed-class) "Sending data."]
+        [:li (when (status :done) completed-class) "Done."]]
+       (when bugout
+         [:button {:on-click (partial stop-sending-receiving! app-data :send)} (if (status :done) "Ok" "Cancel")])]
+      [component-no-p2p state])))
 
 (defn component-upload [{:keys [state ui] :as app-data}]
   [:div "Load a zip file"
