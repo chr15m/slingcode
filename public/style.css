@@ -46,6 +46,10 @@ a:hover {
   color: #8FF8C4;
 }
 
+.highlight {
+  color: #50A1EA
+}
+
 button {
   cursor: pointer;
   background-color: #E5B413;
@@ -326,6 +330,35 @@ section#send ul li.completed {
   list-style-type: "✔";
   color: #31D584;
   padding-left: 0.5em;
+}
+
+section#send blockquote {
+  color: #50A1EA;
+}
+
+section#send button#copy {
+  float: right;
+  margin-bottom: 2em;
+}
+
+#send-spinner {
+  animation: blinker 1s linear infinite;
+}
+
+section#send .secret-container {
+  margin-bottom: 3em;
+}
+
+input#send-secret {
+  font-size: 32px;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
+  font-weight: bold;
+  padding: 0.25em;
+  border-radius: 5px;
+  border: 2px solid #E5B413;
+  background: none;
+  color: #31D584;
+  width: 100%;
 }
 
 /*** individual app ***/
