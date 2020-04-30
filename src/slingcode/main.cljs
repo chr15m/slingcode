@@ -100,7 +100,7 @@
                          :binary-string (.readAsBinaryString fr file)
                          :data-url (.readAsDataURL fr file)
                          (.readAsText fr file))))))
-    (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer.) ""))))))
+    (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer. []) ""))))))
 
 (defn store-files [store app-id files]
   (if can-make-files
