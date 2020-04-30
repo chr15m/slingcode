@@ -47,20 +47,6 @@
     (when (js/File. #js ["hello."] "hello.txt" #js {:type "text/plain"}) true)
     (catch :default e false)))
 
-(comment
-  (def b (Bugout. "i-am-a-room"))
-
-  (.on b "seen" 
-       (fn [address]
-
-         (js/console.log "seen:" address)))
-
-  (.on b "message"
-       (fn [address message]
-         (js/console.log "message:" address message)))
-
-  (.close b))
-
 ; ***** data ***** ;
 
 (defn utf8-to-uint8array [t] (.encode text-encoder t))
@@ -218,19 +204,6 @@
     "application/octet-stream"))
 
 ; ***** functions ***** ;
-
-(defn attach-unload-event! [ui id win which]
-  (.addEventListener win "unload"
-                     (fn [ev]
-                       ;(js/console.log "unload window" id which win)
-                       ;(swap! ui update-in [:windows] dissoc id)
-                       (js/setTimeout (fn [] (js/console.log "closed?" (aget win "closed"))) 250))))
-
-(defn attach-load-event! [ui id win]
-  (.addEventListener win "load"
-                     (fn [ev]
-                       (attach-unload-event! ui id win "from-load")
-                       (print "window load" id))))
 
 (defn get-blob-url [file-blobs filename]
   (let [file (get file-blobs filename)]
