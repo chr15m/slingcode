@@ -26,7 +26,6 @@
 
 (defonce ui-state (r/atom {}))
 (defonce dom-parser (js/DOMParser.))
-(defonce text-encoder (js/TextEncoder.))
 (def re-uuid (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
 (def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
 (def re-css-url (js/RegExp. "url\\([\"']{0,1}(.*?)[\"']{0,1}\\)" "gi"))
@@ -48,8 +47,6 @@
     (catch :default e false)))
 
 ; ***** data ***** ;
-
-(defn utf8-to-uint8array [t] (.encode text-encoder t))
 
 (defn make-file [content file-name args]
   (let [blob-content (clj->js [content])
