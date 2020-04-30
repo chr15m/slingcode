@@ -875,7 +875,7 @@
                               :on-change (partial initiate-zip-upload! app-data)}]
                  [:label "From zip"]]
                 [:li [:a {:href "#"
-                          :on-click #(.preventDefault %)}
+                          :on-click (fn [ev] (.preventDefault ev) (swap! state assoc :mode :receive))}
                       "Receive"]]]])
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
