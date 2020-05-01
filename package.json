@@ -9,6 +9,7 @@
     "mime-types": "^2.1.26",
     "minify": "^5.1.1",
     "niceware": "^2.0.0",
+    "qrcode-svg": "^1.1.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "sass": "^1.26.2",

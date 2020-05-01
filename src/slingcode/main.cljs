@@ -21,7 +21,8 @@
     ["tweetnacl-auth" :as nacl-auth]
     ["bs58" :as bs58]
     ["niceware" :as niceware]
-    ["webtorrent" :as webtorrent]))
+    ["webtorrent" :as webtorrent]
+    ["qrcode-svg" :as qr]))
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
@@ -770,14 +771,23 @@
 
 (defn component-secret [secret secret-field]
   (when secret
-    [:div.secret-container
-     [:p "Select 'receive' on your other device."]
-     [:p "Then enter this 'send secret' to connect:"]
-     [:input#send-secret {:value (clojure.string/join " " secret) :read-only true :ref #(reset! secret-field %)}]
-     [:button#copy {:on-click (fn [ev]
-                                (.select @secret-field)
-                                (.execCommand js/document "copy")
-                                (js/alert "Send secret copied!"))} "Copy"]]))
+    (let [secret-phrase (clojure.string/join " " secret)]
+      [:div.secret-container
+       [:p "Select 'receive' on your other device."]
+       [:p "Then enter or scan this 'send secret' to connect:"]
+       [:input#send-secret {:value secret-phrase :read-only true :ref #(reset! secret-field %)}]
+       [:button#copy {:on-click (fn [ev]
+                                  (.select @secret-field)
+                                  (.execCommand js/document "copy")
+                                  (js/alert "Send secret copied!"))} "Copy"]
+       [:div.qr
+        [:div {:ref #(when %
+                       (aset % "innerHTML"
+                             (.svg (qr.
+                                     (str (-> js/document .-location .-href)
+                                          "?receive="
+                                          (js/encodeURIComponent secret-phrase))))))}]
+        [:p "scan to receive"]]])))
 
 (defn component-send [{:keys [state ui] :as app-data}]
   (let [status (or (get-in @state [:send :status]) {})

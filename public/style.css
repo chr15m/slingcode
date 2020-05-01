@@ -345,7 +345,7 @@ section#send button + button {
   margin-left: 1em;
 }
 
-#send-spinner {
+section#send #send-spinner {
   animation: blinker 1s linear infinite;
 }
 
@@ -353,7 +353,12 @@ section#send .secret-container {
   margin-bottom: 3em;
 }
 
-input#send-secret {
+section#send .qr {
+  margin-top: 4em;
+  text-align: center;
+}
+
+section#send input#send-secret {
   font-size: 32px;
   font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
   font-weight: bold;
