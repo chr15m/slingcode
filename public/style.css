@@ -341,6 +341,10 @@ section#send button#copy {
   margin-bottom: 2em;
 }
 
+section#send button + button {
+  margin-left: 1em;
+}
+
 #send-spinner {
   animation: blinker 1s linear infinite;
 }
