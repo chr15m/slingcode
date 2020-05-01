@@ -2,6 +2,8 @@ STATIC=index.html style.css logo.png
 BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/logo.svg public/logo.png
 SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
+# DEBUGFLAG=$(if $(DEBUG), --debug,)
+DEBUGFLAG=--debug
 
 # bootleg stuff
 BOOTLEGVERSION=0.1.7
@@ -33,7 +35,7 @@ build/style.min.css: build/style.css
 	npx minify $< > $@
 
 build/js/main.js: $(shell find src) node_modules shadow-cljs.edn src/default-apps.zip.b64
-	npx shadow-cljs release app
+	npx shadow-cljs release app $(DEBUGFLAG)
 
 build/style.css: public/*.css
 	cat public/codemirror.css public/erlang-dark.css public/style.css > $@
