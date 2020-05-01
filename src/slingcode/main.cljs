@@ -565,9 +565,10 @@
 (defn stop-sending-receiving! [{:keys [state ui store] :as app-data} mode ev]
   (.preventDefault ev)
   (let [bugout (get-in @state [mode :bugout-instance])
-        webtorrent (.-wt bugout)]
-    (.close bugout)
-    (.destroy webtorrent)
+        webtorrent (when bugout (aget bugout "wt"))]
+    (when bugout
+      (.close bugout)
+      (.destroy webtorrent))
     (swap! state dissoc :mode mode)))
 
 (defn receive-app! [{:keys [state ui store] :as app-data} human-readable-one-time-secret ev]
@@ -758,13 +759,13 @@
           [:li (when (status :seen) completed-class) "Seen other device."]
           [:li (when (status :downloading) completed-class) "Downloading the app."]
           [:li (when (status :done) completed-class) "Done."]]
-         (when bugout
-           [:button {:on-click (partial stop-sending-receiving! app-data :receive)} (if (status :done) "Ok" "Cancel")])]
+         [:button {:on-click (partial stop-sending-receiving! app-data :receive)} (if (status :done) "Ok" "Cancel")]]
         [:section#send.screen
          [:p (str "Enter the 'send secret' from the other device to start receiving.")]
          [:p
           [:input#send-secret {:value @secret :placeholder "Enter 'send secret'..." :on-change #(reset! secret (-> % .-target .-value))}]]
-         [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]])
+         [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]
+         [:button {:on-click (partial stop-sending-receiving! app-data :receive)} "Cancel"]])
       [component-no-p2p state])))
 
 (defn component-secret [secret secret-field]
