@@ -413,6 +413,15 @@ div.app .app-actions-menu > div {
   margin: 0.5em 0px;
 }
 
+@media (max-width: 600px) {
+  div.app .app-actions-menu {
+    position: absolute;
+    margin-left: 0px;
+    float: left;
+    transform: translateY(2em);
+  }
+}
+
 #apps .columns {
   display: flex;
 }
