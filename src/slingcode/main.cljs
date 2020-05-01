@@ -520,7 +520,7 @@
   (.preventDefault ev)
   (go
     (let [zipfile (<! (make-zip store id title))]
-      (js/window.open (js/window.URL.createObjectURL zipfile)))))
+      (swap! state assoc :mode :download :zipfile zipfile))))
 
 (defn add-zip-file! [{:keys [state store ui] :as app-data} zipfile ev]
   ; TODO: some kind of interaction to tell the user what is in the file
@@ -914,6 +914,13 @@
    [:p [:a {:href "https://slingcode.net/" :target "_blank"} "slingcode.net"]]
    [:button {:on-click (partial toggle-about-screen! state)} "Ok"]])
 
+(defn component-download [state]
+  (let [zipfile (@state :zipfile)]
+    [:section#about.screen
+     [:p.title "Download"]
+     [:p [:a {:href (js/window.URL.createObjectURL zipfile)} (.-name zipfile)]]
+     [:button {:on-click #(swap! state dissoc :mode :zipfile)} "Done"]]))
+
 (defn component-main [{:keys [state ui] :as app-data}]
   (let [apps (r/cursor state [:apps])
         mode (@state :mode)]
@@ -938,6 +945,7 @@
        :upload [component-upload app-data]
        :send [component-send app-data]
        :receive [component-receive app-data]
+       :download [component-download state]
        nil [:section#apps.screen
             [:section#tags
 
