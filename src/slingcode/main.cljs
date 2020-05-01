@@ -485,11 +485,11 @@
                (swap! state assoc :message blocked-message)))
       250)))
 
-(defn edit-app! [{:keys [state ui store] :as app-data} id files ev]
-  (.preventDefault ev)
+(defn edit-app! [{:keys [state ui store] :as app-data} app-id files ev]
+  (when ev (.preventDefault ev))
   (go
-    (let [files (vec (or files (<p! (retrieve-files store id))))]
-      (swap! state assoc :mode :edit :editing {:id id :files files :tab-index 0 :editors {}}))))
+    (let [files (vec (or files (<p! (retrieve-files store app-id))))]
+      (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index 0 :editors {}}))))
 
 (defn close-editor! [state ev]
   (.preventDefault ev)
@@ -523,12 +523,13 @@
     (let [zipfile (<! (make-zip store id title))]
       (swap! state assoc :mode :download :zipfile zipfile))))
 
-(defn add-zip-file! [{:keys [state store ui] :as app-data} zipfile ev]
+(defn add-zip-file! [{:keys [state store ui] :as app-data} zipfile]
   ; TODO: some kind of interaction to tell the user what is in the file
   (go (let [apps (<! (zip-parse-file zipfile))
-            added-apps (<! (add-apps! state store apps))]
+            added-apps (<! (add-apps! state store apps))
+            app (first added-apps)]
         (if (= (count added-apps) 1)
-          (edit-app! app-data (first (first added-apps)) nil ev)
+          (edit-app! app-data (first app) (-> app second :files) nil)
           (swap! state assoc
                  :message {:level :success :text (str "Added " (count added-apps) " apps.")}
                  :add-menu nil)))))
@@ -564,16 +565,19 @@
   (.slice (nacl-auth bugout-address-raw hmac-key) 0 4))
 
 (defn stop-sending-receiving! [{:keys [state ui store] :as app-data} mode ev]
-  (.preventDefault ev)
+  (when ev (.preventDefault ev))
   (let [bugout (get-in @state [mode :bugout-instance])
         webtorrent (when bugout (aget bugout "wt"))]
     (when bugout
       (.close bugout)
-      (.destroy webtorrent))
-    (swap! state dissoc :mode mode)))
+      (.destroy webtorrent)))
+  (if ev
+    (swap! state dissoc :mode mode)
+    (swap! state dissoc mode))
+  (js/console.log "stop-sending-receiving!"))
 
 (defn receive-app! [{:keys [state ui store] :as app-data} human-readable-one-time-secret ev]
-  (.preventDefault ev)
+  (when ev (.preventDefault ev))
   (swap! state assoc :mode :receive :receive {:status {:initiated true}})
   (when can-p2p
     (let [human-readable-one-time-secret (vec (.split human-readable-one-time-secret " "))
@@ -610,15 +614,15 @@
                               (fn []
                                 (.send bugout-instance address (clj->js {"secret" human-readable-one-time-secret
                                                                          "done" true}))
+                                (swap! state assoc-in [:receive :status :done] true)
                                 (go
                                   (let [file-name (str (aget (first (.-files torrent)) "name") ".zip")
                                         encrypted-zip (<! (extract-torrent-file torrent))
                                         zipfile-buffer-encrypted (js/Uint8Array. (<p! (get-file-contents encrypted-zip :array-buffer)))
                                         zipfile-buffer (.open nacl/secretbox zipfile-buffer-encrypted encryption-nonce encryption-key)
                                         zipfile (make-file (.-buffer zipfile-buffer) file-name #js {:type "application/zip"})]
-                                    (stop-sending-receiving! app-data :receive ev)
-                                    (add-zip-file! app-data zipfile ev))
-                                  (swap! state assoc-in [:receive :status :done] true)))))))))))))
+                                    (stop-sending-receiving! app-data :receive ev) 
+                                    (add-zip-file! app-data zipfile))))))))))))))
 
 (defn send-app! [{:keys [state ui store] :as app-data} app-id files title ev]
   (.preventDefault ev)
@@ -696,7 +700,7 @@
 (defn initiate-zip-upload! [{:keys [state store ui] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))]
-    (add-zip-file! app-data (first files) ev)))
+    (add-zip-file! app-data (first files))))
 
 (defn increment-filename [f]
   (let [[_ file-part _ increment extension] (.exec #"(.*?)(-([0-9]+)){0,1}(?:\.([^.]+))?$" f)]
@@ -1039,7 +1043,8 @@
           (let [first-run (nil? (js/localStorage.getItem "slingcode-has-run"))
                 default-apps (<! (zip-parse-base64 default-apps-base64-blob))
                 message-callback (partial #'receive-message app-data)
-                old-message-callback (aget js/window "message-callback")]
+                old-message-callback (aget js/window "message-callback")
+                receive-code (.get qs-params "receive")]
             (when old-message-callback
               (.removeEventListener js/window "message" old-message-callback))
             (.addEventListener js/window "message"
@@ -1050,6 +1055,8 @@
             (js/console.log "Default apps:" (clj->js default-apps))
             (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
             (tap> {"apps" ((deref (app-data :state)) :apps)})
+            (when receive-code
+              (receive-app! app-data receive-code nil))
             (rdom/render [component-main app-data] el)))))))
 
 (defn main! []
