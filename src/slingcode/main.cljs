@@ -1056,6 +1056,7 @@
             (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
             (tap> {"apps" ((deref (app-data :state)) :apps)})
             (when receive-code
+              (.replaceState history #js {} (.-title js/document) base-url)
               (receive-app! app-data receive-code nil))
             (rdom/render [component-main app-data] el)))))))
 
