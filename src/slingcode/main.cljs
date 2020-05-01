@@ -413,8 +413,8 @@
                (fn [[k v]]
                  (or (= search "")
                      (nil? search)
-                     (in-string (v :title) search)
-                     (in-string (v :description) search)))
+                     (in-string (.toLowerCase (or (v :title) "")) search)
+                     (in-string (.toLowerCase (or (v :description) "")) search)))
                apps))))
 
 (defn add-apps! [state store apps-to-add]
