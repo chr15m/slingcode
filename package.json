@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@ungap/url-search-params": "^0.1.4",
+    "@zxing/library": "^0.16.3",
     "bugout": "0.0.9",
     "codemirror": "^5.51.0",
     "create-react-class": "^15.6.3",

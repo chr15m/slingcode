@@ -22,9 +22,19 @@
     ["bs58" :as bs58]
     ["niceware" :as niceware]
     ["webtorrent" :as webtorrent]
-    ["qrcode-svg" :as qr]))
+    ["@zxing/library/umd/index.min" :as zxing]))
+
+;(js/console.log "instascan" instascan)
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
+
+(tap> "Slingcode start.")
+
+(aset js/window "onerror" (fn [error] (tap> {"message" (aget error "message")
+                                             "filename" (aget error "filename")
+                                             "lineno" (aget error "lineno")
+                                             "colno" (aget error "colno")
+                                             "error" (js->clj (aget error "error"))})))
 
 (defonce ui-state (r/atom {}))
 (def dom-parser (js/DOMParser.))
@@ -743,6 +753,25 @@
   (.preventDefault ev)
   (reset! tab-index i))
 
+(defn enable-camera! [{:keys [state store ui] :as app-data} el]
+  (js/console.log "enable-camera!")
+  (when el
+    (let [scanner (zxing/BrowserQRCodeReader.)]
+      (.decodeFromInputVideoDeviceContinuously
+        scanner
+        js/undefined
+        "qrcam"
+        (fn [result err]
+          (when result
+            (.reset scanner)
+            (js/console.log result)
+            (let [text (aget result "text")
+                   qs (.pop (.split text "?"))
+                   qs-params (URLSearchParams. qs)
+                   secret (.get qs-params "receive")]
+               (if secret
+                 (receive-app! app-data secret nil)))))))))
+
 ; ***** views ***** ;
 
 (defn component-no-p2p [state]
@@ -766,14 +795,28 @@
           [:li (when (status :done) completed-class) "Done."]]
          [:button {:on-click (partial stop-sending-receiving! app-data :receive)} (if (status :done) "Ok" "Cancel")]]
         [:section#send.screen
-         [:p (str "Enter the 'send secret' from the other device to start receiving.")]
-         [:p
-          [:input#send-secret {:value @secret :placeholder "Enter 'send secret'..." :on-change #(reset! secret (-> % .-target .-value))}]]
+         [:p "Enter the 'send secret' from the other device, or scan the QR code, to start receiving."]
+         [:div.qr
+          [:input#send-secret {:value @secret
+                               :placeholder "Enter 'send secret'..."
+                               :on-change #(reset! secret (-> % .-target .-value))}]
+          [:p "or scan to receive"]
+          [:video {:id "qrcam" :ref (partial enable-camera! app-data)}]]
          [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]
          [:button {:on-click (partial stop-sending-receiving! app-data :receive)} "Cancel"]])
       [component-no-p2p state])))
 
-(defn component-secret [secret secret-field]
+(defn render-qr-code [secret-phrase base-url el]
+  (js/console.log "render-qr-code" secret-phrase el)
+  (when (and el (= (.-length (.-children el)) 0)) ;(and % (= (-> % .-children .-length) 0))
+    (let [code-writer (zxing/BrowserQRCodeSvgWriter.)]
+      (.writeToDom code-writer el
+                   (str base-url
+                        "?receive="
+                        (js/encodeURIComponent secret-phrase))
+                   300 300))))
+
+(defn component-secret [secret secret-field base-url]
   (when secret
     (let [secret-phrase (clojure.string/join " " secret)]
       [:div.secret-container
@@ -785,15 +828,10 @@
                                   (.execCommand js/document "copy")
                                   (js/alert "Send secret copied!"))} "Copy"]
        [:div.qr
-        [:div {:ref #(when %
-                       (aset % "innerHTML"
-                             (.svg (qr.
-                                     (str (-> js/document .-location .-href)
-                                          "?receive="
-                                          (js/encodeURIComponent secret-phrase))))))}]
+        [:div#qrcode {:ref (partial render-qr-code secret-phrase base-url)}]
         [:p "scan to receive"]]])))
 
-(defn component-send [{:keys [state ui] :as app-data}]
+(defn component-send [{:keys [state ui base-url] :as app-data}]
   (let [status (or (get-in @state [:send :status]) {})
         bugout (get-in @state [:send :bugout-instance])
         secret (get-in @state [:send :secret])
@@ -803,7 +841,7 @@
     (if can-p2p
       [:section#send.screen
        [:p [:strong (str "Ready to send" (when title (str " '" title "'")) ".")]]
-       [component-secret secret secret-field]
+       [component-secret secret secret-field base-url]
        (when (not (status :done)) [:div#send-spinner "Sending..."])
        [:ul
         [:li (when (status :seen) completed-class) "Seen other device."]
@@ -1022,13 +1060,16 @@
 (defn reload! []
   (println "reload!")
   (let [qs (-> js/document .-location .-search)
-        qs-params (URLSearchParams. qs)]
+        qs-params (URLSearchParams. qs)
+        history (.-history js/window)
+        location (-> js/window .-location)
+        base-url (str (.-protocol location) "//" (.-host location) (.-pathname location))]
     (go
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
             ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
             state (r/atom {:apps stored-apps})
-            app-data {:state state :ui ui-state :store store}
+            app-data {:state state :ui ui-state :store store :base-url base-url}
             el (js/document.getElementById "app")]
         (if (.has qs-params "app")
           (let [app-id (.get qs-params "app")
