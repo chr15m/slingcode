@@ -808,7 +808,7 @@
 
 (defn render-qr-code [secret-phrase base-url el]
   (js/console.log "render-qr-code" secret-phrase el)
-  (when (and el (= (.-length (.-children el)) 0)) ;(and % (= (-> % .-children .-length) 0))
+  (when (and el (= (.-length (.-children el)) 0))
     (let [code-writer (zxing/BrowserQRCodeSvgWriter.)]
       (.writeToDom code-writer el
                    (str base-url
@@ -840,16 +840,21 @@
         completed-class {:class "completed"}]
     (if can-p2p
       [:section#send.screen
-       [:p [:strong (str "Ready to send" (when title (str " '" title "'")) ".")]]
-       [component-secret secret secret-field base-url]
-       (when (not (status :done)) [:div#send-spinner "Sending..."])
-       [:ul
-        [:li (when (status :seen) completed-class) "Seen other device."]
-        [:li (when (status :replied) completed-class) "Replied to request."]
-        [:li (when (status :sending) completed-class) "Sending data."]
-        [:li (when (status :done) completed-class) "Done."]]
-       (when bugout
-         [:button {:on-click (partial stop-sending-receiving! app-data :send)} (if (status :done) "Ok" "Cancel")])]
+       (if bugout
+         [:div
+          [:p [:strong (str "Ready to send" (when title (str " '" title "'")) ".")]]
+          [component-secret secret secret-field base-url]
+          (when (not (status :done)) [:div#send-spinner "Sending..."])
+          [:ul
+           [:li (when (status :seen) completed-class) "Seen other device."]
+           [:li (when (status :replied) completed-class) "Replied to request."]
+           [:li (when (status :sending) completed-class) "Sending data."]
+           [:li (when (status :done) completed-class) "Done."]]
+          [:button {:on-click (partial stop-sending-receiving! app-data :send)} (if (status :done) "Ok" "Cancel")]]
+         [:div
+          [:p "Preparing files for sharing."]
+          [:p#send-spinner "Preparing..."]
+          [:button {:on-click (partial stop-sending-receiving! app-data :send)} "Cancel"]])]
       [component-no-p2p state])))
 
 (defn component-upload [{:keys [state ui] :as app-data}]
