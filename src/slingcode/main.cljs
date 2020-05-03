@@ -557,7 +557,8 @@
         f (aget (.-files torrent) 0)]
     (go
       (.getBlob f (fn [err blob]
-                    (put! c blob))))
+                    (put! c blob)
+                    (close! c))))
     c))
 
 (defn seed-webtorrent [bugout-instance f title]
@@ -568,7 +569,9 @@
              (make-file f (make-slug title) #js {:type "application/octet-stream"})
              (clj->js {"announce" (.-announce bugout-instance)})
              (fn [torrent]
-               (put! c torrent))))
+               (js/console.log "torrent seeded" torrent)
+               (put! c torrent)
+               (close! c))))
     c))
 
 (defn one-time-secret-first-half [bugout-address-raw hmac-key]
