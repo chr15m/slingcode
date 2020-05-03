@@ -563,11 +563,15 @@
 
 (defn seed-webtorrent [bugout-instance f title]
   (let [webtorrent-instance (.-wt bugout-instance)
+        announce (clj->js {"announce" (.-announce bugout-instance)})
+        encrypted-file (make-file f (make-slug title) #js {:type "application/octet-stream"})
         c (chan)]
+    (.on webtorrent-instance "error" (fn [err] (js/console.log "WebTorrent Error" err)))
+    (js/console.log "webtorrent instance" webtorrent-instance announce)
     (go
       (.seed webtorrent-instance
-             (make-file f (make-slug title) #js {:type "application/octet-stream"})
-             (clj->js {"announce" (.-announce bugout-instance)})
+             encrypted-file
+             announce
              (fn [torrent]
                (js/console.log "torrent seeded" torrent)
                (put! c torrent)
@@ -631,10 +635,14 @@
                                 (go
                                   (let [file-name (str (aget (first (.-files torrent)) "name") ".zip")
                                         encrypted-zip (<! (extract-torrent-file torrent))
-                                        zipfile-buffer-encrypted (js/Uint8Array. (<p! (get-file-contents encrypted-zip :array-buffer)))
-                                        zipfile-buffer (.open nacl/secretbox zipfile-buffer-encrypted encryption-nonce encryption-key)
-                                        zipfile (make-file (.-buffer zipfile-buffer) file-name #js {:type "application/zip"})]
+                                        encrypted-array-buffer (<p! (get-file-contents encrypted-zip :array-buffer))
+                                        encrypted-zipfile-buffer (js/Uint8Array. encrypted-array-buffer)
+                                        zipfile-array (.open nacl/secretbox encrypted-zipfile-buffer encryption-nonce encryption-key)
+                                        zipfile-buffer (.-buffer zipfile-array)
+                                        zipfile (make-file zipfile-buffer file-name #js {:type "application/zip"})]
+                                    (js/console.log "stopping receive")
                                     (stop-sending-receiving! app-data :receive ev) 
+                                    (js/console.log "adding zip")
                                     (add-zip-file! app-data zipfile))))))))))))))
 
 (defn send-app! [{:keys [state ui store] :as app-data} app-id files title ev]
@@ -662,6 +670,8 @@
             ; TODO: use settings from config page
             bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair}))
             torrent (<! (seed-webtorrent bugout-instance encrypted-zipfile title))]
+
+        (js/console.log "bugout ready" bugout-instance)
 
         (.on bugout-instance "seen"
              (fn [address]
