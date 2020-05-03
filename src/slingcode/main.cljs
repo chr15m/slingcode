@@ -790,6 +790,7 @@
          [:p (str "Ready to receive.")]
          (when (not (status :done)) [:div#send-spinner "Receiving..."])
          [:ul
+          [:li completed-class "Connection listening."]
           [:li (when (status :seen) completed-class) "Seen other device."]
           [:li (when (status :downloading) completed-class) "Downloading the app."]
           [:li (when (status :done) completed-class) "Done."]]
@@ -846,6 +847,7 @@
           [component-secret secret secret-field base-url]
           (when (not (status :done)) [:div#send-spinner "Sending..."])
           [:ul
+           [:li completed-class "Connection listening."]
            [:li (when (status :seen) completed-class) "Seen other device."]
            [:li (when (status :replied) completed-class) "Replied to request."]
            [:li (when (status :sending) completed-class) "Sending data."]
