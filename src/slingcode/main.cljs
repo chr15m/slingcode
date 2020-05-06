@@ -24,8 +24,6 @@
     ["webtorrent" :as webtorrent]
     ["@zxing/library/umd/index.min" :as zxing]))
 
-;(js/console.log "instascan" instascan)
-
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
 (tap> "Slingcode start.")
@@ -36,7 +34,7 @@
                                              "colno" (aget error "colno")
                                              "error" (js->clj (aget error "error"))})))
 
-(defonce ui-state (r/atom {}))
+(defonce state (r/atom {}))
 (def dom-parser (js/DOMParser.))
 (def re-uuid (js/RegExp. "([a-f0-9]+(-|$)){5}" "g"))
 (def re-zip-app-files (js/RegExp. "(.*?)/(.*)"))
@@ -319,7 +317,7 @@
       (aset frame "src" (js/window.URL.createObjectURL index-file))
       (swap! state #(-> % (assoc-in [:editing :references] references))))))
 
-(defn update-main-window-content! [{:keys [state ui store] :as app-data} files app-id win]
+(defn update-main-window-content! [{:keys [state store] :as app-data} files app-id win]
   (js/console.log "updating main window content")
   (let [file (if files
                (get-index-file files)
@@ -328,9 +326,9 @@
     (when win
       (set-main-window-content! state (-> win .-document) files file))))
 
-(defn update-refs! [{:keys [state ui store] :as app-data} files app-id file-index]
+(defn update-refs! [{:keys [state store] :as app-data} files app-id file-index]
   (go
-    (let [win (-> @ui :windows (get app-id))
+    (let [win (-> @state :windows (get app-id))
           frame (when win (-> win .-document (.getElementById "slingcode-frame")))
           [index-file updated-references] (<! (update-html-references! files (get-index-file files)))
           links (get-in @state [:editing :references :tags])
@@ -351,7 +349,7 @@
                                     "url" (js/window.URL.createObjectURL file)})
                           "*")))))))
 
-(defn save-handler! [{:keys [state ui store] :as app-data} app-id file-index cm]
+(defn save-handler! [{:keys [state store] :as app-data} app-id file-index cm]
   (let [content (when (and cm (aget cm "getValue")) (.getValue cm))
         files (get-in @state [:editing :files])
         files (vec (map-indexed (fn [i f]
@@ -363,7 +361,7 @@
       (<p! (store-files store app-id files))
       (let [apps (<! (get-apps-data store))
             file (nth files @file-index)
-            win (-> @ui :windows (get app-id))]
+            win (-> @state :windows (get app-id))]
         (swap! state 
                #(-> %
                     (assoc :apps apps)
@@ -372,7 +370,7 @@
           (update-main-window-content! app-data files app-id win)
           (update-refs! app-data files app-id @file-index))))))
 
-(defn remove-file! [{:keys [state ui store] :as app-data} app-id file-index]
+(defn remove-file! [{:keys [state store] :as app-data} app-id file-index]
   (let [files (get-in @state [:editing :files])
         files (vec (concat (subvec files 0 file-index) (subvec files (inc file-index))))]
     (go
@@ -399,7 +397,7 @@
              (clj->js config))]
     cm))
 
-(defn init-cm! [{:keys [state ui] :as app-data} id file-index tab-index dom-node]
+(defn init-cm! [{:keys [state] :as app-data} id file-index tab-index dom-node]
   (aset (.-commands CodeMirror) "save" (partial save-handler! app-data id tab-index))
   (go
     (let [files (-> @state :editing :files)]
@@ -481,21 +479,21 @@
 
 ; ***** events ***** ;
 
-(defn open-app! [{:keys [state ui store] :as app-data} id ev]
+(defn open-app! [{:keys [state store] :as app-data} id ev]
   (.preventDefault ev)
-  (let [win (-> @ui :windows (get id))
+  (let [win (-> @state :windows (get id))
         win (if (not (and win (.-closed win))) win)
         win (or win (js/window.open (str "?app=" id) (str "window-" id)))]
     (when win
       (.focus win)
-      (swap! ui assoc-in [:windows id] win))
+      (swap! state assoc-in [:windows id] win))
     ; let the user know if the window was blocked from opening
     (js/setTimeout
       (fn [] (when (aget win "closed")
                (swap! state assoc :message blocked-message)))
       250)))
 
-(defn edit-app! [{:keys [state ui store] :as app-data} app-id files ev]
+(defn edit-app! [{:keys [state store] :as app-data} app-id files ev]
   (when ev (.preventDefault ev))
   (go
     (let [files (vec (or files (<p! (retrieve-files store app-id))))]
@@ -505,12 +503,12 @@
   (.preventDefault ev)
   (swap! state dissoc :mode :editing))
 
-(defn save-file! [{:keys [state ui] :as app-data} tab-index app-id ev]
+(defn save-file! [{:keys [state] :as app-data} tab-index app-id ev]
   (.preventDefault ev)
   (let [cm (get-in @state [:editing :editors @tab-index])]
     (save-handler! app-data app-id tab-index cm)))
 
-(defn delete-app! [{:keys [state ui store] :as app-data} id ev]
+(defn delete-app! [{:keys [state store] :as app-data} id ev]
   (.preventDefault ev)
   (when (js/confirm "Are you sure you want to delete this app?")
     (close-editor! state ev)
@@ -518,7 +516,7 @@
       (<p! (.removeItem store (str "app/" id)))
       (swap! state assoc :apps (<! (get-apps-data store))))))
 
-(defn delete-file! [{:keys [state ui store] :as app-data} app-id tab-index ev]
+(defn delete-file! [{:keys [state store] :as app-data} app-id tab-index ev]
   (.preventDefault ev)
   (let [files (get-in @state [:editing :files])
         file (nth files @tab-index)]
@@ -527,13 +525,13 @@
       (when (js/confirm "Are you sure you want to delete this file?")
         (remove-file! app-data app-id @tab-index)))))
 
-(defn download-zip! [{:keys [state ui store] :as app-data} id title ev]
+(defn download-zip! [{:keys [state store] :as app-data} id title ev]
   (.preventDefault ev)
   (go
     (let [zipfile (<! (make-zip store id title))]
       (swap! state assoc :mode :download :zipfile zipfile))))
 
-(defn add-zip-file! [{:keys [state store ui] :as app-data} zipfile]
+(defn add-zip-file! [{:keys [state store] :as app-data} zipfile]
   ; TODO: some kind of interaction to tell the user what is in the file
   (go (let [apps (<! (zip-parse-file zipfile))
             added-apps (<! (add-apps! state store apps))
@@ -581,7 +579,7 @@
 (defn one-time-secret-first-half [bugout-address-raw hmac-key]
   (.slice (nacl-auth bugout-address-raw hmac-key) 0 4))
 
-(defn stop-sending-receiving! [{:keys [state ui store] :as app-data} mode ev]
+(defn stop-sending-receiving! [{:keys [state store] :as app-data} mode ev]
   (when ev (.preventDefault ev))
   (let [bugout (get-in @state [mode :bugout-instance])
         webtorrent (when bugout (aget bugout "wt"))]
@@ -593,7 +591,7 @@
     (swap! state dissoc mode))
   (js/console.log "stop-sending-receiving!"))
 
-(defn receive-app! [{:keys [state ui store] :as app-data} human-readable-one-time-secret ev]
+(defn receive-app! [{:keys [state store] :as app-data} human-readable-one-time-secret ev]
   (when ev (.preventDefault ev))
   (swap! state assoc :mode :receive :receive {:status {:initiated true}})
   (when can-p2p
@@ -645,7 +643,7 @@
                                     (js/console.log "adding zip")
                                     (add-zip-file! app-data zipfile))))))))))))))
 
-(defn send-app! [{:keys [state ui store] :as app-data} app-id files title ev]
+(defn send-app! [{:keys [state store] :as app-data} app-id files title ev]
   (.preventDefault ev)
   (swap! state assoc :mode :send)
   (when can-p2p
@@ -720,7 +718,7 @@
   (.preventDefault ev)
   (swap! state update-in [:add-menu] not))
 
-(defn initiate-zip-upload! [{:keys [state store ui] :as app-data} ev]
+(defn initiate-zip-upload! [{:keys [state store] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))]
     (add-zip-file! app-data (first files))))
@@ -736,7 +734,7 @@
         (recur (increment-filename f))
         f))))
 
-(defn add-file! [{:keys [state store ui] :as app-data} file]
+(defn add-file! [{:keys [state store] :as app-data} file]
   (swap! state
          #(-> %
               (update-in [:editing :files] conj file)
@@ -745,7 +743,7 @@
         tab-index (r/cursor state [:editing :tab-index])]
     (save-handler! app-data app-id tab-index nil)))
 
-(defn add-selected-file! [{:keys [state store ui] :as app-data} ev]
+(defn add-selected-file! [{:keys [state store] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))
         file (first files)
@@ -754,7 +752,7 @@
         file (make-file file file-name {:type file-type})]
     (add-file! app-data file)))
 
-(defn create-empty-file! [{:keys [state store ui] :as app-data} ev]
+(defn create-empty-file! [{:keys [state store] :as app-data} ev]
   (.preventDefault ev)
   (let [file-name (js/prompt "Filename:")
         file (when (and file-name (not= file-name ""))
@@ -766,7 +764,7 @@
   (.preventDefault ev)
   (reset! tab-index i))
 
-(defn enable-camera! [{:keys [state store ui] :as app-data} el]
+(defn enable-camera! [{:keys [state store] :as app-data} el]
   (js/console.log "enable-camera!")
   (when el
     (let [scanner (zxing/BrowserQRCodeReader.)]
@@ -792,7 +790,7 @@
        [:p "Sorry, your browser doesn't support peer-to-peer WebRTC connections."]
        [:button {:on-click #(swap! state dissoc :mode)} "Ok"]])
 
-(defn component-receive [{:keys [state ui] :as app-data}]
+(defn component-receive [{:keys [state] :as app-data}]
   (let [secret (r/cursor state [:receive :secret])
         status (or (get-in @state [:receive :status]) {})
         bugout (get-in @state [:receive :bugout-instance])
@@ -845,7 +843,7 @@
         [:div#qrcode {:ref (partial render-qr-code secret-phrase base-url)}]
         [:p "scan to receive"]]])))
 
-(defn component-send [{:keys [state ui base-url] :as app-data}]
+(defn component-send [{:keys [state base-url] :as app-data}]
   (let [status (or (get-in @state [:send :status]) {})
         bugout (get-in @state [:send :bugout-instance])
         secret (get-in @state [:send :secret])
@@ -872,7 +870,7 @@
           [:button {:on-click (partial stop-sending-receiving! app-data :send)} "Cancel"]])]
       [component-no-p2p state])))
 
-(defn component-upload [{:keys [state ui] :as app-data}]
+(defn component-upload [{:keys [state] :as app-data}]
   [:div "Load a zip file"
    [:button {:on-click #(swap! state dissoc :mode :edit)} "Ok"]])
 
@@ -884,7 +882,7 @@
           :on-click (partial switch-tab! editor tab-index i)}
      [:span n]]))
 
-(defn component-codemirror-block [{:keys [state ui] :as app-data} app-id f i tab-index]
+(defn component-codemirror-block [{:keys [state] :as app-data} app-id f i tab-index]
   [:div.editor
    {:style {:display (if (= i @tab-index) "block" "none")}
     :ref (partial init-cm! app-data app-id i tab-index)}])
@@ -904,13 +902,13 @@
 (defn file-create-li [app-data]
   [:li {:on-click (partial create-empty-file! app-data)} "Create"])
 
-(defn component-editor [{:keys [state ui] :as app-data}]
+(defn component-editor [{:keys [state] :as app-data}]
   (let [files (r/cursor state [:editing :files])
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
         file-count (range (count @files))
         app-id (-> @state :editing :id)
-        app-window (-> @ui :windows (get app-id))]
+        app-window (-> @state :windows (get app-id))]
     [:section#editor.screen
      [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
       [:li.topmenu (dropdown-menu-state menu-state :app) "App"
@@ -952,13 +950,14 @@
                                                              [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
                     :else [component-codemirror-block app-data app-id file i tab-index])])))]]))
 
-(defn component-list-app [{:keys [state ui] :as app-data} app-id app]
+(defn component-list-app [{:keys [state] :as app-data} app-id app]
   [:div.app
    [:div.columns
     [:div.column
-     [:div (if (app :icon-url)
-             [:img.app-icon {:src (app :icon-url)}]
-             [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
+     [:div {:on-click (partial open-app! app-data app-id)}
+      (if (app :icon-url)
+        [:img.app-icon {:src (app :icon-url)}]
+        [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
      [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :code]]]
      (when (= (@state :actions-menu) app-id)
        [:div.app-actions-menu {:on-mouse-leave (partial toggle-app-actions-menu! state nil)}
@@ -993,7 +992,7 @@
      [:p [:a {:href (js/window.URL.createObjectURL zipfile)} (.-name zipfile)]]
      [:button {:on-click #(swap! state dissoc :mode :zipfile)} "Done"]]))
 
-(defn component-main [{:keys [state ui] :as app-data}]
+(defn component-main [{:keys [state] :as app-data}]
   (let [apps (r/cursor state [:apps])
         mode (@state :mode)]
     [:div
@@ -1050,7 +1049,7 @@
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
-(defn component-child-container [{:keys [state ui query] :as app-data} files file app-id]
+(defn component-child-container [{:keys [state query] :as app-data} files file app-id]
   [:iframe#slingcode-frame
    {:ref (fn [el]
            ; if we weren't spawned by a slingcode editor then load our own content
@@ -1059,7 +1058,7 @@
                (.postMessage parent #js {:action "reload" :app-id app-id} "*")
                (set-main-window-content! state js/document files file))))}])
 
-(defn receive-message [{:keys [state ui store] :as app-data} message]
+(defn receive-message [{:keys [state store] :as app-data} message]
   (js/console.log "received message" message)
   (let [action (aget message "data" "action")
         app-id (aget message "data" "app-id")]
@@ -1071,9 +1070,9 @@
                               (aget message "origin")
                               (-> js/document .-location .-href))
               (update-main-window-content! app-data files app-id (.-source message))
-              (swap! ui update-in [:windows] assoc app-id (.-source message))))
+              (swap! state update-in [:windows] assoc app-id (.-source message))))
           (= action "unload")
-          (swap! ui update-in [:windows] dissoc app-id))))
+          (swap! state update-in [:windows] dissoc app-id))))
 
 ; ***** init ***** ;
 
@@ -1088,9 +1087,9 @@
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
             ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
-            state (r/atom {:apps stored-apps})
-            app-data {:state state :ui ui-state :store store :base-url base-url}
+            app-data {:state state :store store :base-url base-url}
             el (js/document.getElementById "app")]
+        (swap! state assoc :apps stored-apps)
         (if (.has qs-params "app")
           (let [app-id (.get qs-params "app")
                 files (<p! (retrieve-files store app-id))
@@ -1114,7 +1113,7 @@
               (when (<! (add-apps! state store default-apps))
                 (js/localStorage.setItem "slingcode-has-run" "true")))
             (js/console.log "Default apps:" (clj->js default-apps))
-            (js/console.log "Current state:" (clj->js (deref (app-data :state)) (deref (app-data :ui))))
+            (js/console.log "Current state:" (clj->js (deref (app-data :state))))
             (tap> {"apps" ((deref (app-data :state)) :apps)})
             (when receive-code
               (.replaceState history #js {} (.-title js/document) base-url)
