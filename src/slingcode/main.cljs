@@ -143,6 +143,25 @@
           (let [files (js->clj (<p! (.getItem store (str "app/" app-id))))]
             (res (map #(make-file (base64-to-blob (get % "content")) (get % "name") {:type (get % "type")}) files))))))))
 
+(defn store-app-order [store app-order]
+  (js/Promise.
+    (fn [res err]
+      (go
+        (res (js->clj (<p! (.setItem store "order" (clj->js app-order)))))))))
+
+(defn retrieve-app-order [store]
+  (js/Promise.
+    (fn [res err]
+      (go
+        (res (js->clj (<p! (.getItem store "order"))))))))
+
+(defn ensure-app-order [app-order stored-apps]
+  (let [not-in-app-order (->> stored-apps
+                              (filter (fn [[app-id files]] (not (some #(= app-id %) app-order))))
+                              (map first)
+                              vec)]
+    (vec (concat (vec (or app-order [])) not-in-app-order))))
+
 (defn get-files-map [files]
   (into {} (map (fn [f] {(.-name f) f}) files)))
 
