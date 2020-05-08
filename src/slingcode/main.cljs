@@ -172,8 +172,7 @@
                                      tags (.querySelector dom "meta[name='slingcode-tags']")
                                      tags (remove #(= % "") (-> (if tags (.getAttribute tags "content") "") (.split ",")))
                                      app {id
-                                          {:created (.-lastModified index-html)
-                                           :title title
+                                          {:title title
                                            :description description
                                            :tags (js->clj tags)
                                            :files (vec files)
