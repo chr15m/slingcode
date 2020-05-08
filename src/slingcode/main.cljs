@@ -59,7 +59,7 @@
 ; check if this platform can do webtorrenting
 (def can-p2p webtorrent/WEBRTC_SUPPORT)
 
-; ***** data ***** ;
+; ***** functions ***** ;
 
 (defn make-file [content file-name args]
   (let [blob-content (clj->js [content])
@@ -212,8 +212,6 @@
         (mime-types/lookup (.-name file))
         t))
     "application/octet-stream"))
-
-; ***** functions ***** ;
 
 (defn get-blob-url [file-blobs filename]
   (let [file (get file-blobs filename)]
@@ -481,7 +479,7 @@
           zip (<p! (.loadAsync z file))]
       (<! (zip-extract zip)))))
 
-; ***** events ***** ;
+; ***** event handlers ***** ;
 
 (defn open-app! [{:keys [state store] :as app-data} id ev]
   (.preventDefault ev)
@@ -545,6 +543,71 @@
           (swap! state assoc
                  :message {:level :success :text (str "Added " (count added-apps) " apps.")}
                  :add-menu nil)))))
+
+(defn toggle-about-screen! [state ev]
+  (.preventDefault ev)
+  (swap! state
+         (fn [s]
+           (let [mode (s :mode)
+                 mode-last (s :mode-last)]
+             (if (= mode :about)
+               (-> s
+                   (assoc :mode mode-last)
+                   (dissoc :mode-last))
+               (assoc s :mode :about :mode-last mode))))))
+
+(defn toggle-app-actions-menu! [state app-id]
+  (swap! state update-in [:actions-menu] #(if (= % app-id) nil app-id)))
+
+(defn toggle-add-menu! [state ev]
+  (.preventDefault ev)
+  (swap! state update-in [:add-menu] not))
+
+(defn initiate-zip-upload! [{:keys [state store] :as app-data} ev]
+  (.preventDefault ev)
+  (let [files (js/Array.from (-> ev .-target .-files))]
+    (add-zip-file! app-data (first files))))
+
+(defn increment-filename [f]
+  (let [[_ file-part _ increment extension] (.exec #"(.*?)(-([0-9]+)){0,1}(?:\.([^.]+))?$" f)]
+    (str file-part "-" (inc (int increment)) (and extension ".") extension)))
+
+(defn ensure-unique-filename [files file-name]
+  (let [file-names (set (map #(.-name %) files))]
+    (loop [f file-name]
+      (if (contains? file-names f)
+        (recur (increment-filename f))
+        f))))
+
+(defn add-file! [{:keys [state store] :as app-data} file]
+  (swap! state
+         #(-> %
+              (update-in [:editing :files] conj file)
+              (assoc-in [:editing :tab-index] (count (get-in % [:editing :files])))))
+  (let [app-id (get-in @state [:editing :id])
+        tab-index (r/cursor state [:editing :tab-index])]
+    (save-handler! app-data app-id tab-index nil)))
+
+(defn add-selected-file! [{:keys [state store] :as app-data} ev]
+  (.preventDefault ev)
+  (let [files (js/Array.from (-> ev .-target .-files))
+        file (first files)
+        file-name (ensure-unique-filename (-> @state :editing :files) (.-name file))
+        file-type (get-valid-type file)
+        file (make-file file file-name {:type file-type})]
+    (add-file! app-data file)))
+
+(defn create-empty-file! [{:keys [state store] :as app-data} ev]
+  (.preventDefault ev)
+  (let [file-name (js/prompt "Filename:")
+        file (when (and file-name (not= file-name ""))
+               (make-file "" file-name {:type (or (mime-types/lookup file-name) "text/plain")}))]
+    (when file
+      (add-file! app-data file))))
+
+(defn switch-tab! [editor tab-index i ev]
+  (.preventDefault ev)
+  (reset! tab-index i))
 
 ; ***** send / receive ***** ;
 
@@ -701,75 +764,8 @@
                                   :bugout-instance bugout-instance
                                   :status {}})))))
 
-; ***** events ***** ;
-
-(defn toggle-about-screen! [state ev]
-  (.preventDefault ev)
-  (swap! state
-         (fn [s]
-           (let [mode (s :mode)
-                 mode-last (s :mode-last)]
-             (if (= mode :about)
-               (-> s
-                   (assoc :mode mode-last)
-                   (dissoc :mode-last))
-               (assoc s :mode :about :mode-last mode))))))
-
-(defn toggle-app-actions-menu! [state app-id]
-  (swap! state update-in [:actions-menu] #(if (= % app-id) nil app-id)))
-
-(defn toggle-add-menu! [state ev]
-  (.preventDefault ev)
-  (swap! state update-in [:add-menu] not))
-
-(defn initiate-zip-upload! [{:keys [state store] :as app-data} ev]
-  (.preventDefault ev)
-  (let [files (js/Array.from (-> ev .-target .-files))]
-    (add-zip-file! app-data (first files))))
-
-(defn increment-filename [f]
-  (let [[_ file-part _ increment extension] (.exec #"(.*?)(-([0-9]+)){0,1}(?:\.([^.]+))?$" f)]
-    (str file-part "-" (inc (int increment)) (and extension ".") extension)))
-
-(defn ensure-unique-filename [files file-name]
-  (let [file-names (set (map #(.-name %) files))]
-    (loop [f file-name]
-      (if (contains? file-names f)
-        (recur (increment-filename f))
-        f))))
-
-(defn add-file! [{:keys [state store] :as app-data} file]
-  (swap! state
-         #(-> %
-              (update-in [:editing :files] conj file)
-              (assoc-in [:editing :tab-index] (count (get-in % [:editing :files])))))
-  (let [app-id (get-in @state [:editing :id])
-        tab-index (r/cursor state [:editing :tab-index])]
-    (save-handler! app-data app-id tab-index nil)))
-
-(defn add-selected-file! [{:keys [state store] :as app-data} ev]
-  (.preventDefault ev)
-  (let [files (js/Array.from (-> ev .-target .-files))
-        file (first files)
-        file-name (ensure-unique-filename (-> @state :editing :files) (.-name file))
-        file-type (get-valid-type file)
-        file (make-file file file-name {:type file-type})]
-    (add-file! app-data file)))
-
-(defn create-empty-file! [{:keys [state store] :as app-data} ev]
-  (.preventDefault ev)
-  (let [file-name (js/prompt "Filename:")
-        file (when (and file-name (not= file-name ""))
-               (make-file "" file-name {:type (or (mime-types/lookup file-name) "text/plain")}))]
-    (when file
-      (add-file! app-data file))))
-
-(defn switch-tab! [editor tab-index i ev]
-  (.preventDefault ev)
-  (reset! tab-index i))
-
-(defn enable-camera! [{:keys [state store] :as app-data} el]
-  (js/console.log "enable-camera!")
+(defn enable-scan-camera! [{:keys [state store] :as app-data} el]
+  (js/console.log "enable-scan-camera!")
   (when el
     (let [scanner (zxing/BrowserQRCodeReader.)]
       (.decodeFromInputVideoDeviceContinuously
@@ -817,7 +813,7 @@
                                :placeholder "Enter 'send secret'..."
                                :on-change #(reset! secret (-> % .-target .-value))}]
           [:p "or scan to receive"]
-          [:video {:id "qrcam" :ref (partial enable-camera! app-data)}]]
+          [:video {:id "qrcam" :ref (partial enable-scan-camera! app-data)}]]
          [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]
          [:button {:on-click (partial stop-sending-receiving! app-data :receive)} "Cancel"]])
       [component-no-p2p state])))
