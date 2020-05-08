@@ -378,10 +378,16 @@
       (<p! (store-files store app-id files))
       (let [apps (<! (get-apps-data store))
             file (nth files @file-index)
-            win (-> @state :windows (get app-id))]
+            win (-> @state :windows (get app-id))
+            app-order (vec (@state :app-order))
+            app-order (if (some #(= app-id %) app-order)
+                        app-order
+                        (conj (or app-order []) app-id))
+            app-order (<p! (store-app-order store (vec app-order)))]
         (swap! state 
                #(-> %
                     (assoc :apps apps)
+                    (assoc :app-order app-order)
                     (assoc-in [:editing :files] files)))
         (if (= (.-name file) "index.html")
           (update-main-window-content! app-data files app-id win)
@@ -450,13 +456,17 @@
     (let [store-chans (map (fn [[n files]]
                              (go (let [id (str (random-uuid))
                                        files (<p! (store-files store id files))]
-                                   {id {:files files}})))
+                                   [[id {:files files}]])))
                            apps-to-add)
-          store-results (<! (async/map merge store-chans))]
-      (swap! state assoc :apps (<! (get-apps-data store)))
+          store-results (<! (async/map concat store-chans))
+          app-order (vec (concat (or (vec (@state :app-order)) []) (vec (map first store-results))))]
+      (swap! state assoc
+             :apps (<! (get-apps-data store))
+             :app-order (<p! (store-app-order store app-order)))
       store-results)))
 
 (defn zip-parse-extract-valid-dir-and-file [path]
+  ;(js/console.log "zip file path:" path)
   (let [[match rootdir filename] (.match path re-zip-app-files)]
     (when (and filename (not= filename "") (= (.indexOf filename "/") -1))
       [rootdir filename])))
@@ -535,7 +545,12 @@
     (close-editor! state ev)
     (go
       (<p! (.removeItem store (str "app/" id)))
-      (swap! state assoc :apps (<! (get-apps-data store))))))
+      (let [app-order (@state :app-order)
+            app-order (filter #(not= % id) app-order)
+            app-order (<p! (store-app-order store app-order))]
+        (swap! state assoc
+               :apps (<! (get-apps-data store))
+               :app-order app-order)))))
 
 (defn delete-file! [{:keys [state store] :as app-data} app-id tab-index ev]
   (.preventDefault ev)
@@ -1013,6 +1028,7 @@
 
 (defn component-main [{:keys [state] :as app-data}]
   (let [apps (r/cursor state [:apps])
+        app-order (@state :app-order)
         mode (@state :mode)]
     [:div
      [:section#header
@@ -1048,8 +1064,11 @@
                 [:span.icon-times {:on-click #(swap! state dissoc :search)}
                  [component-icon :times]])]]
 
-            (for [[id app] (filter-search @apps (@state :search))]
-              [:div {:key id} [component-list-app app-data id app]])
+            (let [apps-filtered (filter-search @apps (@state :search))]
+              (for [id (reverse app-order)]
+                (let [app (get apps-filtered id)]
+                  (when app
+                    [:div {:key id} [component-list-app app-data id app]]))))
 
             (when (@state :add-menu)
               [:div#add-menu {:on-mouse-leave (partial toggle-add-menu! state)}
@@ -1104,11 +1123,15 @@
         base-url (str (.-protocol location) "//" (.-host location) (.-pathname location))]
     (go
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
+            app-data {:state state :store store :base-url base-url}
+            el (js/document.getElementById "app") 
             ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
-            app-data {:state state :store store :base-url base-url}
-            el (js/document.getElementById "app")]
-        (swap! state assoc :apps stored-apps)
+            app-order (<p! (retrieve-app-order store))
+            app-order (ensure-app-order (or app-order []) stored-apps)]
+        (swap! state assoc
+               :apps stored-apps
+               :app-order app-order)
         (if (.has qs-params "app")
           (let [app-id (.get qs-params "app")
                 files (<p! (retrieve-files store app-id))
