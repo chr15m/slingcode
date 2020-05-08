@@ -1100,7 +1100,7 @@
                                    (when parent
                                      (.postMessage parent #js {:action "unload" :app-id app-id})))))
             (rdom/render [component-child-container app-data files file app-id] el))
-          (let [first-run (nil? (js/localStorage.getItem "slingcode-has-run"))
+          (let [first-run (nil? (<p! (.getItem store "slingcode-has-run")))
                 default-apps (<! (zip-parse-base64 default-apps-base64-blob))
                 message-callback (partial #'receive-message app-data)
                 old-message-callback (aget js/window "message-callback")
@@ -1111,7 +1111,7 @@
                                (aset js/window "message-callback" message-callback))
             (when (and first-run (= (count stored-apps) 0))
               (when (<! (add-apps! state store default-apps))
-                (js/localStorage.setItem "slingcode-has-run" "true")))
+                (<p! (.setItem store "slingcode-has-run" "true"))))
             (js/console.log "Default apps:" (clj->js default-apps))
             (js/console.log "Current state:" (clj->js (deref (app-data :state))))
             (tap> {"apps" ((deref (app-data :state)) :apps)})
