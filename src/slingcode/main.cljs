@@ -439,8 +439,7 @@
       (swap! state assoc :apps (<! (get-apps-data store)))
       store-results)))
 
-(defn zip-parse-extract-valid-dir-and-file
-  [path & [file]]
+(defn zip-parse-extract-valid-dir-and-file [path]
   (let [[match rootdir filename] (.match path re-zip-app-files)]
     (when (and filename (not= filename "") (= (.indexOf filename "/") -1))
       [rootdir filename])))
