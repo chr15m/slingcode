@@ -1,7 +1,9 @@
 STATIC=index.html style.css logo.png
 BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
+
 SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/logo.svg public/logo.png
 SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
+DEFAULTAPPS=hello-world preact-demo text-log leaflet-map jquery-ui-demo 8bit-interface party-like-its-98
 # DEBUGFLAG=$(if $(DEBUG), --debug,)
 DEBUGFLAG=--debug
 
@@ -47,9 +49,10 @@ build/%: public/%
 src/default-apps.zip.b64: src/default-apps.zip
 	base64 $< > $@
 
-src/default-apps.zip: $(shell find src/default-apps)
+src/default-apps.zip: $(foreach Z, $(DEFAULTAPPS), src/default-apps/$(Z).zip )
 	rm -f $@
-	cd src/default-apps && zip -r ../default-apps.zip .
+	cd src/default-apps && for z in $(DEFAULTAPPS); do unzip -o $${z}.zip; done
+	cd src/default-apps && zip -r ../default-apps.zip $(DEFAULTAPPS) -x \*.zip
 
 slingcode.net/revision.txt: src/slingcode/revision.txt
 	cp $< $@
