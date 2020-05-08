@@ -989,7 +989,7 @@
   (let [zipfile (@state :zipfile)]
     [:section#about.screen
      [:p.title "Download"]
-     [:p [:a {:href (js/window.URL.createObjectURL zipfile)} (.-name zipfile)]]
+     [:p [:a {:href (js/window.URL.createObjectURL zipfile) :download (.-name zipfile)} (.-name zipfile)]]
      [:button {:on-click #(swap! state dissoc :mode :zipfile)} "Done"]]))
 
 (defn component-main [{:keys [state] :as app-data}]
