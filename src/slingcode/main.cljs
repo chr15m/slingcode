@@ -466,7 +466,6 @@
       store-results)))
 
 (defn zip-parse-extract-valid-dir-and-file [path]
-  ;(js/console.log "zip file path:" path)
   (let [[match rootdir filename] (.match path re-zip-app-files)]
     (when (and filename (not= filename "") (= (.indexOf filename "/") -1))
       [rootdir filename])))
@@ -524,15 +523,20 @@
                (swap! state assoc :message blocked-message)))
       250)))
 
-(defn edit-app! [{:keys [state store] :as app-data} app-id files ev]
-  (when ev (.preventDefault ev))
+(defn edit-app! [{:keys [state store history] :as app-data} app-id files ev]
+  (when ev
+    (.preventDefault ev))
   (go
     (let [files (vec (or files (<p! (retrieve-files store app-id))))]
+      (when (not (and ev (aget ev "state")))
+        (.pushState history #js {"mode" "edit" "app-id" app-id} "Edit" (str "?edit=" app-id)))
       (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index 0 :editors {}}))))
 
-(defn close-editor! [state ev]
+(defn go-home! [{:keys [state history base-url]} ev]
   (.preventDefault ev)
-  (swap! state dissoc :mode :editing))
+  (swap! state dissoc :mode :editing)
+  (when (not (and ev (aget ev "state")))
+    (.pushState history #js {} "" base-url)))
 
 (defn save-file! [{:keys [state] :as app-data} tab-index app-id ev]
   (.preventDefault ev)
@@ -542,7 +546,7 @@
 (defn delete-app! [{:keys [state store] :as app-data} id ev]
   (.preventDefault ev)
   (when (js/confirm "Are you sure you want to delete this app?")
-    (close-editor! state ev)
+    (go-home! app-data ev)
     (go
       (<p! (.removeItem store (str "app/" id)))
       (let [app-order (@state :app-order)
@@ -952,7 +956,7 @@
                [:a {:href "#" :on-click (partial open-app! app-data app-id)} "Launch"])]
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "Publish"]]
         [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]
-        [:li {:on-click (partial close-editor! state)} "Close"]]]
+        [:li {:on-click (partial go-home! app-data)} "Close"]]]
       [:li.topmenu (dropdown-menu-state menu-state :file) "File"
        [:ul
         [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "Save"]]
@@ -1112,6 +1116,15 @@
           (= action "unload")
           (swap! state update-in [:windows] dissoc app-id))))
 
+(defn receive-popstate [{:keys [state] :as app-data} ev]
+  (js/console.log "popstate" (.-state ev))
+  (let [popstate (.-state ev)
+        mode (aget popstate "mode")
+        app-id (aget popstate "app-id")]
+    (case mode
+      "edit" (edit-app! app-data app-id nil ev)
+      (go-home! app-data ev))))
+
 ; ***** init ***** ;
 
 (defn reload! []
@@ -1123,7 +1136,7 @@
         base-url (str (.-protocol location) "//" (.-host location) (.-pathname location))]
     (go
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
-            app-data {:state state :store store :base-url base-url}
+            app-data {:state state :store store :base-url base-url :history history}
             el (js/document.getElementById "app") 
             ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
@@ -1144,22 +1157,30 @@
             (rdom/render [component-child-container app-data files file app-id] el))
           (let [first-run (nil? (<p! (.getItem store "slingcode-has-run")))
                 default-apps (<! (zip-parse-base64 default-apps-base64-blob))
-                message-callback (partial #'receive-message app-data)
                 old-message-callback (aget js/window "message-callback")
-                receive-code (.get qs-params "receive")]
+                old-popstate-callback (aget js/window "popstate-callback")
+                receive-code (.get qs-params "receive")
+                edit-app-id (.get qs-params "edit")]
             (when old-message-callback
               (.removeEventListener js/window "message" old-message-callback))
+            (when old-popstate-callback
+              (.removeEventListener js/window "popstate" old-popstate-callback))
+            (.addEventListener js/window "popstate"
+                               (aset js/window "popstate-callback" (partial receive-popstate app-data)))
             (.addEventListener js/window "message"
-                               (aset js/window "message-callback" message-callback))
+                               (aset js/window "message-callback" (partial receive-message app-data)))
             (when (and first-run (= (count stored-apps) 0))
               (when (<! (add-apps! state store default-apps))
                 (<p! (.setItem store "slingcode-has-run" "true"))))
             (js/console.log "Default apps:" (clj->js default-apps))
             (js/console.log "Current state:" (clj->js (deref (app-data :state))))
             (tap> {"apps" ((deref (app-data :state)) :apps)})
-            (when receive-code
-              (.replaceState history #js {} (.-title js/document) base-url)
-              (receive-app! app-data receive-code nil))
+            (if receive-code
+              (do
+                (.replaceState history #js {"mode" "home"} (.-title js/document) base-url)
+                (receive-app! app-data receive-code nil))
+              (if edit-app-id
+                (edit-app! app-data edit-app-id nil nil)))
             (rdom/render [component-main app-data] el)))))))
 
 (defn main! []
