@@ -63,6 +63,14 @@ button {
   height: 48px;
 }
 
+button.warning {
+  background-color: #C64438;
+}
+
+button.success {
+  background-color: #31D584;
+}
+
 blockquote {
   font-style: italic;
   color: #666;
@@ -87,6 +95,18 @@ input[type=file] {
   max-width: 90%;
   font-size: 0.75em;
   cursor: pointer;
+}
+
+input {
+  font-size: 24px;
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
+  font-weight: bold;
+  padding: 0.25em;
+  border-radius: 5px;
+  border: 2px solid #E5B413;
+  background: none;
+  color: #999;
+  width: 100%;
 }
 
 section#header p {
@@ -122,6 +142,14 @@ section#header svg.icon {
 
 #burger-menu li + li {
   margin-top: 1em;
+}
+
+#burger-menu a {
+  color: #E5B413;
+}
+
+#burger-menu a:hover {
+  color: #eee;
 }
 
 svg#lines {
@@ -338,7 +366,7 @@ section#apps {
   padding: 1em;
 }
 
-section#about, section#send {
+section#about, section#settings, section#send {
   width: 100%;
   max-width: 800px;
   padding: 1em;
@@ -398,6 +426,24 @@ section#send input#send-secret {
   background: none;
   color: #31D584;
   width: 100%;
+}
+
+section#settings .input-group {
+  margin-top: 3em;
+}
+
+section#settings ul {
+  list-style-type: none;
+}
+
+section#settings li {
+  margin-bottom: 1em;
+}
+
+section#settings ul button {
+  min-width: 50%;
+  margin: auto;
+  display: block;
 }
 
 /*** individual app ***/

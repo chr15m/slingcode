@@ -48,7 +48,14 @@
 (def revision (rc/inline "slingcode/revision.txt"))
 (def default-apps-base64-blob (rc/inline "default-apps.zip.b64"))
 (def blocked-message {:level :warning
-                      :text "We couldn't open the app window.\nSometimes adblockers mistakenly do this.\nTry disabling your adblocker\nfor this site and refresh."})
+                      :text (clojure.string/join "\n"
+                              ["We couldn't open the app window."
+                               "Sometimes adblockers mistakenly do this."
+                               "Try disabling your adblocker"
+                               "for this site and refresh."])})
+(def default-signaling-servers ["wss://hub.bugout.link"
+                                "wss://tracker.openwebtorrent.com"
+                                "wss://tracker.btorrent.xyz"])
 
 ; only old Safari iOS needs this check
 (def can-make-files
@@ -647,6 +654,17 @@
     (when file
       (add-file! app-data file))))
 
+(defn reset-slingcode! [store ev]
+  (.preventDefault ev)
+  (when (js/confirm
+          "WARNING!\nCompletely reset Slingcode and delete all apps?")
+    (go
+      (<p! (.clear store))
+      (-> js/window .-location .reload))))
+
+(defn check-for-new-version! [state ev]
+  (.preventDefault ev))
+
 (defn switch-tab! [editor tab-index i ev]
   (.preventDefault ev)
   (reset! tab-index i))
@@ -1038,6 +1056,25 @@
    [:p [:a {:href "https://slingcode.net/" :target "_blank"} "slingcode.net"]]
    [:button {:on-click (partial toggle-screen! state :about)} "Ok"]])
 
+(defn component-settings [{:keys [state store] :as app-data}]
+  (let [settings (r/cursor state :settings)
+        signaling-servers (or (get settings :signaling-servers)
+                              default-signaling-servers)]
+    [:section#settings.screen
+     [:p.title "Settings"]
+     [:div.input-group
+      [:p "Config"]
+      [:ul
+       (for [s signaling-servers]
+         [:li [:input {:value s :read-only true}]])]]
+     [:div.input-group
+      [:p "Reset & update"]
+      [:ul
+       [:li [:button.success {:on-click (partial check-for-new-version!)} "Check for new version"]]
+       [:li [:button.warning {:on-click (partial reset-slingcode! store)} "Reset Slingcode"]]]]
+     [:div.input-group
+      [:button {:on-click (partial toggle-screen! state :settings)} "Ok"]]]))
+
 (defn component-download [state]
   (let [zipfile (@state :zipfile)]
     [:section#about.screen
@@ -1058,6 +1095,7 @@
        [:nav (when (nil? mode) [:a {:href "#" :on-click (partial toggle-burger-menu! burger-menu)} [component-icon :bars]])]
        (when @burger-menu
          [:ul#burger-menu
+          [:li [:a {:href "#" :on-click (partial toggle-screen! state :settings)} "Settings"]]
           [:li [:a {:href "#" :on-click (partial toggle-screen! state :about)} "About"]]])
        [:svg#lines {:width "100%" :height "60px"}
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
@@ -1070,6 +1108,7 @@
 
      (case mode
        :about [component-about state]
+       :settings [component-settings app-data]
        :edit [component-editor app-data]
        :upload [component-upload app-data]
        :send [component-send app-data]
@@ -1160,10 +1199,12 @@
             ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
             app-order (<p! (retrieve-app-order store))
-            app-order (ensure-app-order (or app-order []) stored-apps)]
+            app-order (ensure-app-order (or app-order []) stored-apps)
+            settings (<p! (.getItem store "slingcode-settings"))]
         (swap! state assoc
                :apps stored-apps
-               :app-order app-order)
+               :app-order app-order
+               :settings settings)
         (if (.has qs-params "app")
           (let [app-id (.get qs-params "app")
                 files (<p! (retrieve-files store app-id))
