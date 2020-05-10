@@ -105,7 +105,26 @@ div#logo span {
   left: 160px;
 }
 
-#header svg {
+section#header svg.icon {
+  fill: #E5B413;
+}
+
+#burger-menu {
+  position: absolute;
+  top: 64px;
+  right: 32px;
+  border-radius: 5px;
+  border: 2px solid #E5B413;
+  background-color: #232a25;
+  padding: 1em;
+  list-style-type: none;
+}
+
+#burger-menu li + li {
+  margin-top: 1em;
+}
+
+svg#lines {
   stroke: #777;
   position: absolute;
   top: 60px;

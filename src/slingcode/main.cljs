@@ -585,17 +585,18 @@
                  :message {:level :success :text (str "Added " (count added-apps) " apps.")}
                  :add-menu nil)))))
 
-(defn toggle-about-screen! [state ev]
+(defn toggle-screen! [state which ev]
   (.preventDefault ev)
   (swap! state
          (fn [s]
            (let [mode (s :mode)
-                 mode-last (s :mode-last)]
-             (if (= mode :about)
-               (-> s
-                   (assoc :mode mode-last)
-                   (dissoc :mode-last))
-               (assoc s :mode :about :mode-last mode))))))
+                 mode-last (s :mode-last)
+                 s (if (= mode which)
+                     (-> s
+                         (assoc :mode mode-last)
+                         (dissoc :mode-last))
+                     (assoc s :mode which :mode-last mode))]
+             (dissoc s :burger-menu)))))
 
 (defn toggle-app-actions-menu! [state app-id]
   (swap! state update-in [:actions-menu] #(if (= % app-id) nil app-id)))
@@ -649,6 +650,10 @@
 (defn switch-tab! [editor tab-index i ev]
   (.preventDefault ev)
   (reset! tab-index i))
+
+(defn toggle-burger-menu! [burger-menu ev]
+  (.preventDefault ev)
+  (swap! burger-menu not))
 
 ; ***** send / receive ***** ;
 
@@ -1031,7 +1036,7 @@
     [:li [:a {:href "https://mccormick.cx"} "mccormick.cx"]]]
    [:p.light "Revision: " revision]
    [:p [:a {:href "https://slingcode.net/" :target "_blank"} "slingcode.net"]]
-   [:button {:on-click (partial toggle-about-screen! state)} "Ok"]])
+   [:button {:on-click (partial toggle-screen! state :about)} "Ok"]])
 
 (defn component-download [state]
   (let [zipfile (@state :zipfile)]
@@ -1042,6 +1047,7 @@
 
 (defn component-main [{:keys [state] :as app-data}]
   (let [apps (r/cursor state [:apps])
+        burger-menu (r/cursor state [:burger-menu])
         app-order (@state :app-order)
         mode (@state :mode)]
     [:div
@@ -1049,8 +1055,11 @@
       [:div#logo
        [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
        [:span "Slingcode"]
-       [:nav (when (nil? mode) [:a {:href "#" :on-click (partial toggle-about-screen! state)} "About"])]
-       [:svg {:width "100%" :height "60px"}
+       [:nav (when (nil? mode) [:a {:href "#" :on-click (partial toggle-burger-menu! burger-menu)} [component-icon :bars]])]
+       (when @burger-menu
+         [:ul#burger-menu
+          [:li [:a {:href "#" :on-click (partial toggle-screen! state :about)} "About"]]])
+       [:svg#lines {:width "100%" :height "60px"}
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,57 103,0 50,-50 5000,0"}]]]]
 
