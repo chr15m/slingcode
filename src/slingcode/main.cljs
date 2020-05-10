@@ -59,12 +59,15 @@
 ; check if this platform can do webtorrenting
 (def can-p2p webtorrent/WEBRTC_SUPPORT)
 
+(js/console.log "can-make-files?" can-make-files)
+(js/console.log "can-p2p?" can-p2p)
+
 ; ***** functions ***** ;
 
 (defn make-file [content file-name args]
   (let [blob-content (clj->js [content])
-        args (assoc args :lastModified (or (aget content "lastModified") (js/Date.)))
-        args (clj->js args)]
+        args (clj->js args)
+        args (aset args "lastModified" (or (aget content "lastModified") (js/Date.)))]
     (if can-make-files
       (js/File. blob-content file-name args)
       (let [f (js/Blob. blob-content args)]
@@ -669,8 +672,8 @@
         announce (clj->js {"announce" (.-announce bugout-instance)})
         encrypted-file (make-file f (make-slug title) #js {:type "application/octet-stream"})
         c (chan)]
-    (.on webtorrent-instance "error" (fn [err] (js/console.log "WebTorrent Error" err)))
     (js/console.log "webtorrent instance" webtorrent-instance announce)
+    (.on webtorrent-instance "error" (fn [err] (js/console.log "WebTorrent Error" err)))
     (go
       (.seed webtorrent-instance
              encrypted-file
