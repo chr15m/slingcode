@@ -803,9 +803,10 @@
                                   :status {}})))))
 
 (defn enable-scan-camera! [{:keys [state store] :as app-data} el]
-  (js/console.log "enable-scan-camera!")
-  (when el
+  (js/console.log "enable-scan-camera!" el)
+  (if el
     (let [scanner (zxing/BrowserQRCodeReader.)]
+      (aset js/window "slingcode-qr-scanner" scanner)
       (.decodeFromInputVideoDeviceContinuously
         scanner
         js/undefined
@@ -815,11 +816,17 @@
             (.reset scanner)
             (js/console.log result)
             (let [text (aget result "text")
-                   qs (.pop (.split text "?"))
-                   qs-params (URLSearchParams. qs)
-                   secret (.get qs-params "receive")]
-               (if secret
-                 (receive-app! app-data secret nil)))))))))
+                  qs (.pop (.split text "?"))
+                  qs-params (URLSearchParams. qs)
+                  secret (.get qs-params "receive")]
+              (if secret
+                (receive-app! app-data secret nil)))))))
+    (let [scanner (aget js/window "slingcode-qr-scanner")]
+      (when scanner
+        (.stopContinuousDecode scanner)
+        (.stopAsyncDecode scanner)
+        (.stopStreams scanner)
+        (.reset scanner)))))
 
 ; ***** views ***** ;
 
