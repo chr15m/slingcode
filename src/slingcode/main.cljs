@@ -73,14 +73,15 @@
 
 (defn make-file [content file-name args]
   (let [blob-content (clj->js [content])
-        args (clj->js args)
-        args (aset args "lastModified" (or (aget content "lastModified") (js/Date.)))]
+        last-modified (or (aget content "lastModified") (js/Date.))
+        args (clj->js args)]
+    (aset args "lastModified" last-modified)
     (if can-make-files
       (js/File. blob-content file-name args)
       (let [f (js/Blob. blob-content args)]
-          (aset f "name" file-name)
-          (aset f "lastModified" (aget args "lastModified"))
-          f))))
+        (aset f "name" file-name)
+        (aset f "lastModified" last-modified)
+        f))))
 
 (defn make-boilerplate-files []
   [(make-file boilerplate "index.html" {:type "text/html"})])
