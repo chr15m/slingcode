@@ -106,7 +106,7 @@ input {
   border: 2px solid #E5B413;
   background: none;
   color: #999;
-  width: 100%;
+  max-width: 100%;
 }
 
 section#header p {
@@ -141,7 +141,7 @@ section#header svg.icon {
 }
 
 #burger-menu li + li {
-  margin-top: 1em;
+  margin-top: 0.5em;
 }
 
 #burger-menu a {
@@ -211,6 +211,14 @@ nav {
 
 .success .message svg {
   fill: #31D584;
+}
+
+.input-group {
+  margin-top: 3em;
+}
+
+.input-group button + button {
+  margin-left: 1em;
 }
 
 /*** website markdown ***/
@@ -388,10 +396,6 @@ section#send button#copy {
   margin-bottom: 2em;
 }
 
-section#send button + button {
-  margin-left: 1em;
-}
-
 section#send #send-spinner {
   animation: blinker 1s linear infinite;
 }
@@ -428,12 +432,9 @@ section#send input#send-secret {
   width: 100%;
 }
 
-section#settings .input-group {
-  margin-top: 3em;
-}
-
 section#settings ul {
   list-style-type: none;
+  padding-left: 0px;
 }
 
 section#settings li {
@@ -441,9 +442,25 @@ section#settings li {
 }
 
 section#settings ul button {
-  min-width: 50%;
+  width: 20ch;
+  max-width: 98%;
   margin: auto;
   display: block;
+}
+
+.input-group #signaling-servers button {
+  float: right;
+  width: 3ch;
+  min-width: 3ch;
+}
+
+.input-group #signaling-servers li input {
+  max-width: calc(100% - 4ch);
+  width: 100ch;
+}
+
+.input-group #signaling-servers {
+  margin-bottom: 4em;
 }
 
 /*** individual app ***/

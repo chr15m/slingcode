@@ -56,6 +56,7 @@
 (def default-signaling-servers ["wss://hub.bugout.link"
                                 "wss://tracker.openwebtorrent.com"
                                 "wss://tracker.btorrent.xyz"])
+(def default-settings {"signaling-servers" default-signaling-servers})
 
 ; only old Safari iOS needs this check
 (def can-make-files
@@ -674,6 +675,25 @@
   (.preventDefault ev)
   (swap! burger-menu not))
 
+(defn remove-signaling-server! [original-settings s ev]
+  (.preventDefault ev)
+  (swap! original-settings update-in ["signaling-servers"]
+         (fn [servers]
+           (vec 
+             (keep-indexed
+               (fn [idx server] (when (not= idx s) server))
+               servers)))))
+
+(defn save-settings! [{:keys [state store] :as app-data} original-settings ev]
+  (js/console.log "Yes hello")
+  (.preventDefault ev)
+  (go
+    (js/console.log "And here" (clj->js @original-settings))
+    (<p! (.setItem store "slingcode-settings" (clj->js @original-settings)))
+    (swap! state assoc :settings @original-settings)
+    (js/console.log "saved")
+    (toggle-screen! state :settings ev)))
+
 ; ***** send / receive ***** ;
 
 (defn room-name-from-secret [secret]
@@ -734,7 +754,7 @@
           bugout-secret (.slice one-time-secret 4 8)
           hmac-key (nacl/hash bugout-secret)
           room-name (room-name-from-secret one-time-secret)
-          bugout-instance (Bugout. room-name)
+          bugout-instance (Bugout. room-name (clj->js {:announce (get-in @state [:settings "signaling-servers"])}))
           webtorrent-instance (.-wt bugout-instance)]
       (swap! state assoc-in [:receive :bugout-instance] bugout-instance)
       (.on bugout-instance "seen"
@@ -798,7 +818,7 @@
             zipfile-buffer (js/Uint8Array. (<p! (get-file-contents zipfile :array-buffer)))
             encrypted-zipfile (.secretbox nacl zipfile-buffer encryption-nonce encryption-key)
             ; TODO: use settings from config page
-            bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair}))
+            bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair :announce signaling-servers}))
             torrent (<! (seed-webtorrent bugout-instance encrypted-zipfile title))]
 
         (js/console.log "bugout ready" bugout-instance)
@@ -886,8 +906,9 @@
                                :on-change #(reset! secret (-> % .-target .-value))}]
           [:p "or scan to receive"]
           [:video {:id "qrcam" :ref (partial enable-scan-camera! app-data)}]]
-         [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]
-         [:button {:on-click (partial stop-sending-receiving! app-data :receive)} "Cancel"]])
+         [:div.input-group
+          [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]
+          [:button {:on-click (partial stop-sending-receiving! app-data :receive)} "Cancel"]]])
       [component-no-p2p state])))
 
 (defn render-qr-code [secret-phrase base-url el]
@@ -1057,24 +1078,32 @@
    [:p [:a {:href "https://slingcode.net/" :target "_blank"} "slingcode.net"]]
    [:button {:on-click (partial toggle-screen! state :about)} "Ok"]])
 
-(defn component-settings [{:keys [state store] :as app-data}]
-  (let [settings (r/cursor state :settings)
-        signaling-servers (or (get settings :signaling-servers)
-                              default-signaling-servers)]
+(defn component-settings [{:keys [state store] :as app-data} original-settings]
+  (let [signaling-servers (get @original-settings "signaling-servers")]
     [:section#settings.screen
      [:p.title "Settings"]
      [:div.input-group
-      [:p "Config"]
+      [:p "Update & reset"]
       [:ul
-       (for [s signaling-servers]
-         [:li [:input {:value s :read-only true}]])]]
-     [:div.input-group
-      [:p "Reset & update"]
-      [:ul
-       [:li [:button.success {:on-click (partial check-for-new-version!)} "Check for new version"]]
+       [:li [:button.success {:on-click (partial check-for-new-version!)} "Check for update"]]
        [:li [:button.warning {:on-click (partial reset-slingcode! store)} "Reset Slingcode"]]]]
      [:div.input-group
-      [:button {:on-click (partial toggle-screen! state :settings)} "Ok"]]]))
+      [:p "WebTorrent signaling servers"]
+      [:ul#signaling-servers
+       (for [s (range (count signaling-servers))]
+         [:li {:key s}
+          [:button.remove {:on-click (partial remove-signaling-server! original-settings s)} "x"]
+          [:input {:value (nth signaling-servers s)
+                   :on-change #(swap! original-settings assoc-in ["signaling-servers" s] (-> % .-target .-value))}]])
+       [:li [:button.success
+            {:on-click #(swap! original-settings update-in ["signaling-servers"] conj "wss://")} "+"]]]
+      [:p
+       "(Learn how to " [:a {:href "https://github.com/webtorrent/bittorrent-tracker/"
+                   :target "_blank"} "run your own signaling server"]
+       ".)"]]
+     [:div.input-group
+      [:button {:on-click (partial save-settings! app-data original-settings)} "Ok"]
+      [:button {:on-click (partial toggle-screen! state :settings)} "Cancel"]]]))
 
 (defn component-download [state]
   (let [zipfile (@state :zipfile)]
@@ -1109,7 +1138,7 @@
 
      (case mode
        :about [component-about state]
-       :settings [component-settings app-data]
+       :settings [component-settings app-data (r/atom (get-in @state [:settings]))]
        :edit [component-editor app-data]
        :upload [component-upload app-data]
        :send [component-send app-data]
@@ -1201,7 +1230,8 @@
             stored-apps (<! (get-apps-data store))
             app-order (<p! (retrieve-app-order store))
             app-order (ensure-app-order (or app-order []) stored-apps)
-            settings (<p! (.getItem store "slingcode-settings"))]
+            settings (or (js->clj (<p! (.getItem store "slingcode-settings")))
+                         default-settings)]
         (swap! state assoc
                :apps stored-apps
                :app-order app-order
