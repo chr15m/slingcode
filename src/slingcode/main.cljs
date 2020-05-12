@@ -1076,7 +1076,8 @@
     [:li [:a {:href "https://mccormick.cx"} "mccormick.cx"]]]
    [:p.light "Revision: " revision]
    [:p [:a {:href "https://slingcode.net/" :target "_blank"} "slingcode.net"]]
-   [:button {:on-click (partial toggle-screen! state :about)} "Ok"]])
+   [:button {:on-click (partial toggle-screen! state :about)} "Ok"]
+   [:div#dedication "For S & O."]])
 
 (defn component-settings [{:keys [state store] :as app-data} original-settings]
   (let [signaling-servers (get @original-settings "signaling-servers")]

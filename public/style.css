@@ -13,6 +13,12 @@ body, html {
   font-weight: bold;
 }
 
+#dedication {
+  text-align: center;
+  margin-top: 4em;
+  color: #555;
+}
+
 #loading {
   text-align: center;
   margin-top: 5em;
