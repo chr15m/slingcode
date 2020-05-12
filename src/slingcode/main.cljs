@@ -665,7 +665,12 @@
       (-> js/window .-location .reload))))
 
 (defn check-for-new-version! [state ev]
-  (.preventDefault ev))
+  (.preventDefault ev)
+  (swap! state assoc :update-check :checking)
+  (go
+    (let [result (<p! (.then (js/fetch "https://slingcode.net/revision.txt") #(.text %)))]
+      (js/console.log "checked" result)
+      (swap! state assoc :update-check result))))
 
 (defn switch-tab! [editor tab-index i ev]
   (.preventDefault ev)
@@ -1079,32 +1084,45 @@
    [:button {:on-click (partial toggle-screen! state :about)} "Ok"]
    [:div#dedication "For S & O."]])
 
-(defn component-settings [{:keys [state store] :as app-data} original-settings]
-  (let [signaling-servers (get @original-settings "signaling-servers")]
-    [:section#settings.screen
-     [:p.title "Settings"]
-     [:div.input-group
-      [:p "Update & reset"]
-      [:ul
-       [:li [:button.success {:on-click (partial check-for-new-version!)} "Check for update"]]
-       [:li [:button.warning {:on-click (partial reset-slingcode! store)} "Reset Slingcode"]]]]
-     [:div.input-group
-      [:p "WebTorrent signaling servers"]
-      [:ul#signaling-servers
-       (for [s (range (count signaling-servers))]
-         [:li {:key s}
-          [:button.remove {:on-click (partial remove-signaling-server! original-settings s)} "x"]
-          [:input {:value (nth signaling-servers s)
-                   :on-change #(swap! original-settings assoc-in ["signaling-servers" s] (-> % .-target .-value))}]])
-       [:li [:button.success
-            {:on-click #(swap! original-settings update-in ["signaling-servers"] conj "wss://")} "+"]]]
-      [:p
-       "(Learn how to " [:a {:href "https://github.com/webtorrent/bittorrent-tracker/"
-                   :target "_blank"} "run your own signaling server"]
-       ".)"]]
-     [:div.input-group
-      [:button {:on-click (partial save-settings! app-data original-settings)} "Ok"]
-      [:button {:on-click (partial toggle-screen! state :settings)} "Cancel"]]]))
+(defn component-settings [{:keys [state store] :as app-data} original-settings update-check-status]
+  (let [signaling-servers (get @original-settings "signaling-servers")
+        update-check (@state :update-check)]
+    (if (not (nil? update-check))
+      [:section#settings.screen
+       [:p.title "Check for updates"]
+       (if (= update-check :checking)
+         [:div#loading "Checking..."]
+         (if (= update-check revision)
+           [:div "You have the latest version already."]
+           [:div
+            [:p "Revision " update-check " of " [:a {:href "https://slingcode.net/slingcode.html" :download "slingcode.html"} "slingcode.html"] " is available."]
+            [:p "(Right click and 'Save link as' to download it)."]
+            [:p "Your revision is " revision]]))
+       [:button {:on-click #(swap! state dissoc :update-check)} (if (= update-check :checking) "Cancel" "Ok")]]
+      [:section#settings.screen
+       [:p.title "Settings"]
+       [:div.input-group
+        [:p "Update & reset"]
+        [:ul
+         [:li [:button.success {:on-click (partial check-for-new-version! state)} "Check for update"]]
+         [:li [:button.warning {:on-click (partial reset-slingcode! store)} "Reset Slingcode"]]]]
+       [:div.input-group
+        [:p "WebTorrent signaling servers"]
+        [:ul#signaling-servers
+         (for [s (range (count signaling-servers))]
+           [:li {:key s}
+            [:button.remove {:on-click (partial remove-signaling-server! original-settings s)} "x"]
+            [:input {:value (nth signaling-servers s)
+                     :on-change #(swap! original-settings assoc-in ["signaling-servers" s] (-> % .-target .-value))}]])
+         [:li [:button.success
+               {:on-click #(swap! original-settings update-in ["signaling-servers"] conj "wss://")} "+"]]]
+        [:p
+         "(Learn how to " [:a {:href "https://github.com/webtorrent/bittorrent-tracker/"
+                               :target "_blank"} "run your own signaling server"]
+         ".)"]]
+       [:div.input-group
+        [:button {:on-click (partial save-settings! app-data original-settings)} "Ok"]
+        [:button {:on-click (partial toggle-screen! state :settings)} "Cancel"]]])))
 
 (defn component-download [state]
   (let [zipfile (@state :zipfile)]

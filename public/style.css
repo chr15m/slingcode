@@ -22,6 +22,7 @@ body, html {
 #loading {
   text-align: center;
   margin-top: 5em;
+  margin-bottom: 5em;
   animation: blinker 1s linear infinite;
 }
 
