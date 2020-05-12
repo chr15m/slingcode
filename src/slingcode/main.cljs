@@ -818,7 +818,7 @@
             zipfile-buffer (js/Uint8Array. (<p! (get-file-contents zipfile :array-buffer)))
             encrypted-zipfile (.secretbox nacl zipfile-buffer encryption-nonce encryption-key)
             ; TODO: use settings from config page
-            bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair :announce signaling-servers}))
+            bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair :announce (get-in @state [:settings "signaling-servers"])}))
             torrent (<! (seed-webtorrent bugout-instance encrypted-zipfile title))]
 
         (js/console.log "bugout ready" bugout-instance)
