@@ -1093,12 +1093,13 @@
        (if (= update-check :checking)
          [:div#loading "Checking..."]
          (if (= update-check revision)
-           [:div "You have the latest version already."]
+           [:div [:p "You have the latest version already."]]
            [:div
             [:p "Revision " update-check " of " [:a {:href "https://slingcode.net/slingcode.html" :download "slingcode.html"} "slingcode.html"] " is available."]
             [:p "(Right click and 'Save link as' to download it)."]
             [:p "Your revision is " revision]]))
-       [:button {:on-click #(swap! state dissoc :update-check)} (if (= update-check :checking) "Cancel" "Ok")]]
+       [:div.input-group
+        [:button {:on-click #(swap! state dissoc :update-check)} (if (= update-check :checking) "Cancel" "Ok")]]]
       [:section#settings.screen
        [:p.title "Settings"]
        [:div.input-group
