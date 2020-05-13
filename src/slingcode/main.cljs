@@ -887,6 +887,7 @@
 
 (defn component-receive [{:keys [state] :as app-data}]
   (let [secret (r/cursor state [:receive :secret])
+        receive-scan (r/cursor state [:receive :scan])
         status (or (get-in @state [:receive :status]) {})
         bugout (get-in @state [:receive :bugout-instance])
         completed-class {:class "completed"}]
@@ -904,13 +905,17 @@
         [:section#send.screen
          [:p "Enter the 'send secret' from the other device, or scan the QR code, to start receiving."]
          [:div.qr
-          [:input#send-secret {:value @secret
-                               :placeholder "Enter 'send secret'..."
-                               :on-change #(reset! secret (-> % .-target .-value))}]
-          [:p "or scan to receive"]
-          [:video {:id "qrcam" :ref (partial enable-scan-camera! app-data)}]]
+          (if @receive-scan
+            [:div
+             [:p "Scan QR to receive app."]
+             [:video {:id "qrcam" :ref (partial enable-scan-camera! app-data)}]]
+            [:input#send-secret {:value @secret
+                                 :placeholder "Enter 'send secret'..."
+                                 :on-change #(reset! secret (-> % .-target .-value))}])
+          [:div.input-group
+           [:button {:on-click #(swap! receive-scan not)} (if @receive-scan "Input 'send secret'" "Scan a QR code")]]]
          [:div.input-group
-          [:button {:on-click (partial receive-app! app-data @secret)} "Receive"]
+          (when (not @receive-scan) [:button {:on-click (partial receive-app! app-data @secret)} "Receive"])
           [:button {:on-click (partial stop-sending-receiving! app-data :receive)} "Cancel"]]])
       [component-no-p2p state])))
 

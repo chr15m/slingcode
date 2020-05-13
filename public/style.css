@@ -421,6 +421,11 @@ section#send .qr {
   margin-bottom: 1em;
 }
 
+section#send .qr button {
+  max-width: 80%;
+  width: 30ch;
+}
+
 section#send video {
   display: block;
   margin: auto;
