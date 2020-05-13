@@ -293,7 +293,7 @@
     (let [blob-chans (map (fn [[file-name file]] (replace-file-refs file-blobs file-name file content-type regex)) file-blobs)]
       (<! (async/map merge blob-chans)))))
 
-(defn update-html-references! [files file]
+(defn update-html-references [files file]
   ; TODO: would be great to replace all of this with a serviceWorker
   ; which would return the blob when the filename is requested.
   ; Problem is that would introduce 1 extra file to the distribution
@@ -340,7 +340,7 @@
           frame (-> document (.getElementById "slingcode-frame"))
           title-element (-> document (.getElementsByTagName "title") js/Array.prototype.slice.call first)
           icon-element (-> document (.querySelector "link[rel*='icon']"))
-          [index-file references] (<! (update-html-references! files index-file))]
+          [index-file references] (<! (update-html-references files index-file))]
       (aset title-element "textContent" (or title "Untitled app"))
       (when icon-url (.setAttribute icon-element "href" icon-url)) 
       (aset frame "src" (js/window.URL.createObjectURL index-file))
@@ -359,7 +359,7 @@
   (go
     (let [win (-> @state :windows (get app-id))
           frame (when win (-> win .-document (.getElementById "slingcode-frame")))
-          [index-file updated-references] (<! (update-html-references! files (get-index-file files)))
+          [index-file updated-references] (<! (update-html-references files (get-index-file files)))
           links (get-in @state [:editing :references :tags])
           ;file-blobs (get-in @state [:editing :references :file-blobs])
           file-blobs (updated-references :file-blobs)
