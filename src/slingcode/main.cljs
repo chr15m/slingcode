@@ -743,9 +743,7 @@
     (when bugout
       (.close bugout)
       (.destroy webtorrent)))
-  (if ev
-    (swap! state dissoc :mode mode)
-    (swap! state dissoc mode))
+  (swap! state dissoc mode (when ev :mode))
   (js/console.log "stop-sending-receiving!"))
 
 (defn receive-app! [{:keys [state store] :as app-data} human-readable-one-time-secret ev]
