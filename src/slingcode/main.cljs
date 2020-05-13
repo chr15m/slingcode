@@ -22,7 +22,7 @@
     ["bs58" :as bs58]
     ["niceware" :as niceware]
     ["webtorrent" :as webtorrent]
-    ["@zxing/library/umd/index.min" :as zxing]))
+    ["./zxingwrap" :as zx]))
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
 
@@ -855,7 +855,7 @@
 (defn enable-scan-camera! [{:keys [state store] :as app-data} el]
   (js/console.log "enable-scan-camera!" el)
   (if el
-    (let [scanner (zxing/BrowserQRCodeReader.)]
+    (let [scanner (zx/lib.BrowserQRCodeReader.)]
       (aset js/window "slingcode-qr-scanner" scanner)
       (.decodeFromInputVideoDeviceContinuously
         scanner
@@ -922,7 +922,7 @@
 (defn render-qr-code [secret-phrase base-url el]
   (js/console.log "render-qr-code" secret-phrase el)
   (when (and el (= (.-length (.-children el)) 0))
-    (let [code-writer (zxing/BrowserQRCodeSvgWriter.)]
+    (let [code-writer (zx/lib.BrowserQRCodeSvgWriter.)]
       (.writeToDom code-writer el
                    (str base-url
                         "?receive="

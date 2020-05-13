@@ -16,7 +16,7 @@
     "sass": "1.26.2",
     "shadow-cljs": "2.8.98",
     "tweetnacl-auth": "1.0.1",
-    "@zxing/library": "0.16.3",
+    "@zxing/library": "0.17.0",
     "bugout": "0.0.9"
   }
 }
