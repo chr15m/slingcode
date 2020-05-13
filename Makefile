@@ -3,7 +3,7 @@ BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 
 SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/logo.svg public/logo.png
 SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
-DEFAULTAPPS=hello-world preact-demo text-log leaflet-map jquery-ui-demo 8bit-interface party-like-its-98
+DEFAULTAPPS=hello-world preact-demo leaflet-map jquery-ui-demo party-like-its-98 text-log 8bit-interface
 # DEBUGFLAG=$(if $(DEBUG), --debug,)
 DEBUGFLAG=--debug
 
