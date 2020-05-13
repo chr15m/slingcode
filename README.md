@@ -4,6 +4,7 @@ Slingcode is a **personal computing platform** in a single html file.
 
 * You can **make, run, and share web apps** with it.
 * You don't need any complicated tools to use it, **just a web browser**.
+* You don't need a server, hosting, or an SSL certificate to run it.
 * You can put it on a web site, run it from a USB stick, laptop, or phone, and it doesn't need an internet connection to work.
 * You can "**add to home screen**" in your phone's browser to easily access your library of programs on the go.
 * You can **share apps peer-to-peer** over WebTorrent.
