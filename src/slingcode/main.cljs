@@ -716,7 +716,7 @@
                     (close! c))))
     c))
 
-(defn seed-webtorrent [bugout-instance f title]
+(defn seed-webtorrent! [bugout-instance f title]
   (let [webtorrent-instance (.-wt bugout-instance)
         announce (clj->js {"announce" (.-announce bugout-instance)})
         encrypted-file (make-file f (make-slug title) #js {:type "application/octet-stream"})
@@ -824,7 +824,7 @@
             encrypted-zipfile (.secretbox nacl zipfile-buffer encryption-nonce encryption-key)
             ; TODO: use settings from config page
             bugout-instance (Bugout. room-name (clj->js {:keyPair bugout-keypair :announce (get-in @state [:settings "signaling-servers"])}))
-            torrent (<! (seed-webtorrent bugout-instance encrypted-zipfile title))]
+            torrent (<! (seed-webtorrent! bugout-instance encrypted-zipfile title))]
 
         (js/console.log "bugout ready" bugout-instance)
 
@@ -1208,7 +1208,9 @@
                (.postMessage parent #js {:action "reload" :app-id app-id} "*")
                (set-main-window-content! state js/document files file))))}])
 
-(defn receive-message [{:keys [state store] :as app-data} message]
+; ***** browser message handlers ***** ;
+
+(defn receive-message! [{:keys [state store] :as app-data} message]
   (js/console.log "received message" message)
   (let [action (aget message "data" "action")
         app-id (aget message "data" "app-id")]
@@ -1224,7 +1226,7 @@
           (= action "unload")
           (swap! state update-in [:windows] dissoc app-id))))
 
-(defn receive-popstate [{:keys [state] :as app-data} ev]
+(defn receive-popstate! [{:keys [state] :as app-data} ev]
   (js/console.log "popstate" (.-state ev))
   (let [popstate (.-state ev)
         mode (aget popstate "mode")
@@ -1277,9 +1279,9 @@
             (when old-popstate-callback
               (.removeEventListener js/window "popstate" old-popstate-callback))
             (.addEventListener js/window "popstate"
-                               (aset js/window "popstate-callback" (partial receive-popstate app-data)))
+                               (aset js/window "popstate-callback" (partial receive-popstate! app-data)))
             (.addEventListener js/window "message"
-                               (aset js/window "message-callback" (partial receive-message app-data)))
+                               (aset js/window "message-callback" (partial receive-message! app-data)))
             (when (and first-run (= (count stored-apps) 0))
               (when (<! (add-apps! state store default-apps))
                 (<p! (.setItem store "slingcode-has-run" "true"))))
