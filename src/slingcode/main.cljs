@@ -124,7 +124,7 @@
                          (.readAsText fr file))))))
     (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer. []) ""))))))
 
-(defn store-files [store app-id files]
+(defn store-files! [store app-id files]
   (if can-make-files
     ; TODO: warn user if storage full or error writing
     (.setItem store (str "app/" app-id) (clj->js files))
@@ -155,7 +155,7 @@
           (let [files (js->clj (<p! (.getItem store (str "app/" app-id))))]
             (res (map #(make-file (base64-to-blob (get % "content")) (get % "name") {:type (get % "type")}) files))))))))
 
-(defn store-app-order [store app-order]
+(defn store-app-order! [store app-order]
   (js/Promise.
     (fn [res err]
       (go
@@ -387,7 +387,7 @@
                                     f))
                                 files))]
     (go
-      (<p! (store-files store app-id files))
+      (<p! (store-files! store app-id files))
       (let [apps (<! (get-apps-data store))
             file (nth files @file-index)
             win (-> @state :windows (get app-id))
@@ -395,7 +395,7 @@
             app-order (if (some #(= app-id %) app-order)
                         app-order
                         (conj (or app-order []) app-id))
-            app-order (<p! (store-app-order store (vec app-order)))]
+            app-order (<p! (store-app-order! store (vec app-order)))]
         (swap! state 
                #(-> %
                     (assoc :apps apps)
@@ -409,7 +409,7 @@
   (let [files (get-in @state [:editing :files])
         files (vec (concat (subvec files 0 file-index) (subvec files (inc file-index))))]
     (go
-      (<p! (store-files store app-id files))
+      (<p! (store-files! store app-id files))
       (let [apps (<! (get-apps-data store))]
         (swap! state #(-> %
                           (assoc :apps apps)
@@ -467,14 +467,14 @@
   (go
     (let [store-chans (map (fn [[n files]]
                              (go (let [id (str (random-uuid))
-                                       files (<p! (store-files store id files))]
+                                       files (<p! (store-files! store id files))]
                                    [[id {:files files}]])))
                            apps-to-add)
           store-results (<! (async/map concat store-chans))
           app-order (vec (concat (or (vec (@state :app-order)) []) (vec (map first store-results))))]
       (swap! state assoc
              :apps (<! (get-apps-data store))
-             :app-order (<p! (store-app-order store app-order)))
+             :app-order (<p! (store-app-order! store app-order)))
       store-results)))
 
 (defn zip-parse-extract-valid-dir-and-file [path]
@@ -563,7 +563,7 @@
       (<p! (.removeItem store (str "app/" id)))
       (let [app-order (@state :app-order)
             app-order (filter #(not= % id) app-order)
-            app-order (<p! (store-app-order store app-order))]
+            app-order (<p! (store-app-order! store app-order))]
         (swap! state assoc
                :apps (<! (get-apps-data store))
                :app-order app-order)))))
