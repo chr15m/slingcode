@@ -132,7 +132,7 @@
     ; is neccessary because of the way iOS Safari 9 + localForage
     ; handle Files embedded within a deeper structure
     ; TODO: remove when all browsers support localForage blob arrays
-    (js/Promise
+    (js/Promise.
       (fn [res err]
         (go
           (let [file-chans (map (fn [f]
