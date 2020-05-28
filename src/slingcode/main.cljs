@@ -1194,10 +1194,10 @@
                               :name "upload-zip"
                               :accept "application/zip"
                               :on-change (partial initiate-zip-upload! app-data)}]
-                 [:label "From zip"]]
+                 [:label "Upload zip"]]
                 [:li [:a {:href "#"
                           :on-click (fn [ev] (.preventDefault ev) (swap! state assoc :mode :receive))}
-                      "Receive"]]]])
+                      "Receive app"]]]])
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
