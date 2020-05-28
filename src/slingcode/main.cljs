@@ -599,12 +599,12 @@
     (let [zipfile (<! (make-zip store id title))]
       (swap! state assoc :mode :download :zipfile zipfile))))
 
-(defn add-zip-file! [{:keys [state store] :as app-data} zipfile]
+(defn add-zip-file! [{:keys [state store] :as app-data} zipfile no-editor]
   ; TODO: some kind of interaction to tell the user what is in the file
   (go (let [apps (<! (zip-parse-file zipfile))
             added-apps (<! (add-apps! state store apps))
             app (first added-apps)]
-        (if (= (count added-apps) 1)
+        (if (and (= (count added-apps) 1) (not no-editor))
           (edit-app! app-data (first app) (-> app second :files) nil)
           (swap! state assoc
                  :message {:level :success :text (str "Added " (count added-apps) " apps.")}
@@ -633,7 +633,7 @@
 (defn initiate-zip-upload! [{:keys [state store] :as app-data} ev]
   (.preventDefault ev)
   (let [files (js/Array.from (-> ev .-target .-files))]
-    (add-zip-file! app-data (first files))))
+    (add-zip-file! app-data (first files) false)))
 
 (defn increment-filename [f]
   (let [[_ file-part _ increment extension] (.exec #"(.*?)(-([0-9]+)){0,1}(?:\.([^.]+))?$" f)]
@@ -812,7 +812,7 @@
                                     (js/console.log "stopping receive")
                                     (stop-sending-receiving! app-data :receive ev) 
                                     (js/console.log "adding zip")
-                                    (add-zip-file! app-data zipfile))))))))))))))
+                                    (add-zip-file! app-data zipfile true))))))))))))))
 
 (defn send-app! [{:keys [state store] :as app-data} app-id files title ev]
   (.preventDefault ev)
