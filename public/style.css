@@ -480,12 +480,12 @@ section#settings ul button {
 div.app {
   border-bottom: 2px solid #444;
   padding: 1.5em 0px;
-  cursor: pointer;
 }
 
 div.app img.app-icon {
   width: 64px;
   height: 64px;
+  cursor: pointer;
 }
 
 div.app button svg {

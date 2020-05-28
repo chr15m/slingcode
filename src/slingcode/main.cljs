@@ -1075,13 +1075,11 @@
       (if (app :icon-url)
         [:img.app-icon {:src (app :icon-url)}]
         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
+     [:div [:button {:on-click (partial open-app! app-data app-id) :title "Run app"} [component-icon :play]]]
      [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :pencil]]]
-     (when (= (@state :actions-menu) app-id)
-       [:div.app-actions-menu {:on-mouse-leave (partial toggle-app-actions-menu! state nil)}
-        [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
-        [:div [:button {:on-click (partial clone-app! app-data app (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
-        [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save app zip"} [component-icon :download]]]])
-     [:div [:button {:on-click (partial toggle-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
+     [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
+     [:div [:button {:on-click (partial clone-app! app-data app (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
+     [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Download app zip"} [component-icon :download]]]]
     [:div.column
      [:a.title {:href (str "?app=" app-id)
                 :on-click (partial open-app! app-data app-id)
