@@ -468,6 +468,7 @@
         (swap! state update-in [:editing :editors] dissoc file-index)))))
 
 (defn add-apps! [state store apps-to-add]
+  "Add apps to the local store. apps-to-add is an vec of [[app-id files] ...] and app-id is discarded."
   ; TODO: some kind of validation that this
   ; infact contains a reasonable web app
   (go
@@ -549,6 +550,12 @@
       (when (not (and ev (aget ev "state")))
         (.pushState history #js {"mode" "edit" "app-id" app-id} "Edit" (str "?edit=" app-id)))
       (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index 0 :editors {}}))))
+
+(defn clone-app! [{:keys [state store history] :as app-data} app-id files ev]
+  (when ev
+    (.preventDefault ev))
+  (add-apps! state store [[app-id files]])
+  (js/window.scrollTo 0 0))
 
 (defn go-home! [{:keys [state history base-url]} ev]
   (.preventDefault ev)
@@ -1069,7 +1076,7 @@
      (when (= (@state :actions-menu) app-id)
        [:div.app-actions-menu {:on-mouse-leave (partial toggle-app-actions-menu! state nil)}
         [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
-        [:div [:button {:on-click (partial edit-app! app-data (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
+        [:div [:button {:on-click (partial clone-app! app-data (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
         [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save app zip"} [component-icon :download]]]])
      [:div [:button {:on-click (partial toggle-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
     [:div.column
