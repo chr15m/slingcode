@@ -551,11 +551,14 @@
         (.pushState history #js {"mode" "edit" "app-id" app-id} "Edit" (str "?edit=" app-id)))
       (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index 0 :editors {}}))))
 
-(defn clone-app! [{:keys [state store history] :as app-data} app-id files ev]
+(defn clone-app! [{:keys [state store history] :as app-data} app app-id files ev]
   (when ev
     (.preventDefault ev))
   (add-apps! state store [[app-id files]])
-  (js/window.scrollTo 0 0))
+  (js/window.scrollTo 0 0)
+  (swap! state assoc
+         :message {:level :success :text (str "Cloned " (app :title))}
+         :add-menu nil))
 
 (defn go-home! [{:keys [state history base-url]} ev]
   (.preventDefault ev)
@@ -1076,7 +1079,7 @@
      (when (= (@state :actions-menu) app-id)
        [:div.app-actions-menu {:on-mouse-leave (partial toggle-app-actions-menu! state nil)}
         [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
-        [:div [:button {:on-click (partial clone-app! app-data (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
+        [:div [:button {:on-click (partial clone-app! app-data app (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
         [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Save app zip"} [component-icon :download]]]])
      [:div [:button {:on-click (partial toggle-app-actions-menu! state app-id) :title "App actions"} [component-icon :bars]]]]
     [:div.column
