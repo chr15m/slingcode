@@ -1075,7 +1075,7 @@
       (if (app :icon-url)
         [:img.app-icon {:src (app :icon-url)}]
         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
-     [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :code]]]
+     [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :pencil]]]
      (when (= (@state :actions-menu) app-id)
        [:div.app-actions-menu {:on-mouse-leave (partial toggle-app-actions-menu! state nil)}
         [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
