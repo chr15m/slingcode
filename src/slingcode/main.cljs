@@ -70,7 +70,9 @@
 (js/console.log "can-make-files?" can-make-files)
 (js/console.log "can-p2p?" can-p2p)
 
+
 ; ***** functions ***** ;
+
 
 (defn make-file [content file-name args]
   (let [blob-content (clj->js [content])
@@ -124,27 +126,6 @@
                          (.readAsText fr file))))))
     (js/Promise. (fn [res rej] (res (if (= result-type :array-buffer) (js/ArrayBuffer. []) ""))))))
 
-(defn store-files! [store app-id files]
-  (if can-make-files
-    ; TODO: warn user if storage full or error writing
-    (.setItem store (str "app/" app-id) (clj->js files))
-    ; all of the following complex serialization and deserialization
-    ; is neccessary because of the way iOS Safari 9 + localForage
-    ; handle Files embedded within a deeper structure
-    ; TODO: remove when all browsers support localForage blob arrays
-    (js/Promise.
-      (fn [res err]
-        (go
-          (let [file-chans (map (fn [f]
-                                  (go
-                                    (let [content {:name (.-name f)
-                                                   :type (.-type f)
-                                                   :lastModified (.-lastModified f)
-                                                   :content (<p! (get-file-contents f :data-url))}]
-                                      [content]))) files)
-                files (<! (async/map concat file-chans))]
-            (res (<p! (.setItem store (str "app/" app-id) (clj->js files))))))))))
-
 (defn retrieve-files [store app-id]
   (if can-make-files
     (.getItem store (str "app/" app-id))
@@ -154,12 +135,6 @@
         (go
           (let [files (js->clj (<p! (.getItem store (str "app/" app-id))))]
             (res (map #(make-file (base64-to-blob (get % "content")) (get % "name") {:type (get % "type")}) files))))))))
-
-(defn store-app-order! [store app-order]
-  (js/Promise.
-    (fn [res err]
-      (go
-        (res (js->clj (<p! (.setItem store "order" (clj->js app-order)))))))))
 
 (defn retrieve-app-order [store]
   (js/Promise.
@@ -330,6 +305,50 @@
           :tags {:scripts script-references
                  :links style-references}}]))))
 
+(defn in-string [a b]
+  (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
+
+(defn filter-search [apps search]
+  (let [search (if search (.toLowerCase search) "")]
+    (into {} (filter
+               (fn [[k v]]
+                 (or (= search "")
+                     (nil? search)
+                     (in-string (.toLowerCase (or (v :title) "")) search)
+                     (in-string (.toLowerCase (or (v :description) "")) search)))
+               apps))))
+
+
+; ***** mutating functions ***** ;
+
+
+(defn store-app-order! [store app-order]
+  (js/Promise.
+    (fn [res err]
+      (go
+        (res (js->clj (<p! (.setItem store "order" (clj->js app-order)))))))))
+
+(defn store-files! [store app-id files]
+  (if can-make-files
+    ; TODO: warn user if storage full or error writing
+    (.setItem store (str "app/" app-id) (clj->js files))
+    ; all of the following complex serialization and deserialization
+    ; is neccessary because of the way iOS Safari 9 + localForage
+    ; handle Files embedded within a deeper structure
+    ; TODO: remove when all browsers support localForage blob arrays
+    (js/Promise.
+      (fn [res err]
+        (go
+          (let [file-chans (map (fn [f]
+                                  (go
+                                    (let [content {:name (.-name f)
+                                                   :type (.-type f)
+                                                   :lastModified (.-lastModified f)
+                                                   :content (<p! (get-file-contents f :data-url))}]
+                                      [content]))) files)
+                files (<! (async/map concat file-chans))]
+            (res (<p! (.setItem store (str "app/" app-id) (clj->js files))))))))))
+
 (defn set-main-window-content! [state document files index-file]
   (go
     (let [content (<p! (get-file-contents index-file :text))
@@ -447,19 +466,6 @@
               (.focus cm)
               (swap! state assoc-in [:editing :editors file-index] cm))))
         (swap! state update-in [:editing :editors] dissoc file-index)))))
-
-(defn in-string [a b]
-  (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
-
-(defn filter-search [apps search]
-  (let [search (if search (.toLowerCase search) "")]
-    (into {} (filter
-               (fn [[k v]]
-                 (or (= search "")
-                     (nil? search)
-                     (in-string (.toLowerCase (or (v :title) "")) search)
-                     (in-string (.toLowerCase (or (v :description) "")) search)))
-               apps))))
 
 (defn add-apps! [state store apps-to-add]
   ; TODO: some kind of validation that this
