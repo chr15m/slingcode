@@ -1071,8 +1071,7 @@
                 :on-click (partial open-app! app-data app-id)
                 :target (str "window-" app-id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
-     [:p (app :description)]
-     [:p.tags (doall (for [t (app :tags)] [:span {:key t} t]))]]]])
+     [:p (app :description)]]]])
 
 (defn component-about [state]
   [:section#about.screen
