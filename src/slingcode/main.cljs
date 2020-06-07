@@ -1028,21 +1028,28 @@
         app-window (-> @state :windows (get app-id))]
     [:section#editor.screen
      [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
-      [:li.topmenu (dropdown-menu-state menu-state :app) "App"
-       [:ul
-        [:li (if (and app-window (not (aget app-window "closed")))
-               [:span "(launched)"]
-               [:a {:href "#" :on-click (partial open-app! app-data app-id)} "Launch"])]
-        [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "Publish"]]
-        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]
-        [:li {:on-click (partial go-home! app-data)} "Close"]]]
+      [:a.back {:href "#"
+                :on-click (partial go-home! app-data)}
+       [component-icon :back]]
       [:li.topmenu (dropdown-menu-state menu-state :file) "File"
        [:ul
         [:li [:a {:href "#" :on-click (partial save-file! app-data tab-index app-id)} "Save"]]
         ; [:li [:a.color-warn {:href "#"} "rename"]]
         [:li [:a.color-warn {:href "#" :on-click (partial delete-file! app-data app-id tab-index)} "Delete"]]
         [file-load-li app-data "top"]
-        [file-create-li app-data]]]]
+        [file-create-li app-data]]]
+      [:li.topmenu (dropdown-menu-state menu-state :app) "App"
+       [:ul
+        [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "Publish"]]
+        [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]]]
+      [:li.topmenu.button (dropdown-menu-state menu-state :run) [component-icon :play] "Run"
+       [:ul
+        [:li {:on-click (partial open-app! app-data app-id)}
+         (if 
+           (and app-window (not (aget app-window "closed")))
+           "Switch to tab"
+           "In a new tab")]
+        [:li {:on-click (partial open-app! app-data app-id)} "Next to code"]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
