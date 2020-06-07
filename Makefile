@@ -17,10 +17,10 @@ slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
 	npx minify build/slingcode-compiled.html > $@
 
-slingcode.net/index.html: src/slingcode-site-bootleg.clj README.md src/slingcode-static.html $(SITEFILES_DEST)
+slingcode.net/index.html: $(BOOTLEG) src/slingcode-site-bootleg.clj README.md src/slingcode-static.html build/index.html $(SITEFILES_DEST)
 	$(BOOTLEG) src/slingcode-site-bootleg.clj README.md > $@
 
-slingcode.net/publish.html: src/slingcode-site-bootleg.clj publish.md src/slingcode-static.html $(SITEFILES_DEST)
+slingcode.net/publish.html: $(BOOTLEG) src/slingcode-site-bootleg.clj publish.md src/slingcode-static.html build/index.html $(SITEFILES_DEST)
 	$(BOOTLEG) src/slingcode-site-bootleg.clj publish.md > $@
 
 slingcode.net/public/%: public/%
