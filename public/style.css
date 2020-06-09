@@ -800,6 +800,22 @@ div.editor > div {
   height: 100%;
 }
 
+section#editor div#panes {
+  max-width: 100%;
+}
+
+section#editor div#panes.out > div {
+  width: 67%;
+}
+
+section#editor div#panes > iframe {
+  height: 100vh;
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  width: 33%;
+}
+
 section#editor .add-file-menu input {
   max-width: 3em;
   margin-left: -1em;
@@ -834,7 +850,7 @@ section#editor .file-content > div {
 .CodeMirror {
   background: none !important;
   font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .CodeMirror-gutters {

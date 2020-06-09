@@ -528,7 +528,7 @@
 
 ; ***** event handlers ***** ;
 
-(defn open-app! [{:keys [state store] :as app-data} id ev]
+(defn open-app-tab! [{:keys [state store] :as app-data} id ev]
   (.preventDefault ev)
   (let [win (-> @state :windows (get id))
         win (if (not (and win (.-closed win))) win)
@@ -541,6 +541,10 @@
       (fn [] (when (aget win "closed")
                (swap! state assoc :message blocked-message)))
       250)))
+
+(defn toggle-app-iframe! [{:keys [state store] :as app-data} id ev]
+  (.preventDefault ev)
+  (swap! state update-in [:editing :iframe] not))
 
 (defn edit-app! [{:keys [state store history] :as app-data} app-id files ev]
   (when ev
@@ -1024,6 +1028,7 @@
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
         file-count (range (count @files))
+        iframe (-> @state :editing :iframe)
         app-id (-> @state :editing :id)
         app-window (-> @state :windows (get app-id))]
     [:section#editor.screen
@@ -1044,12 +1049,15 @@
         [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]]]
       [:li.topmenu.button (dropdown-menu-state menu-state :run) [component-icon :play] "Run"
        [:ul
-        [:li {:on-click (partial open-app! app-data app-id)}
+        [:li {:on-click (partial open-app-tab! app-data app-id)}
          (if 
            (and app-window (not (aget app-window "closed")))
            "Switch to tab"
            "In a new tab")]
-        [:li {:on-click (partial open-app! app-data app-id)} "Next to code"]]]]
+        [:li {:on-click (partial toggle-app-iframe! app-data app-id)}
+         (if iframe
+           "Close view"
+           "Next to code")]]]]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
@@ -1063,33 +1071,36 @@
          [:ul
           [file-load-li app-data "sub"]
           [file-create-li app-data]]])]
-     [:div
-      (doall (for [i file-count]
-               (let [file (nth @files i)
-                     filename (.-name file)
-                     content-type (get-valid-type file)]
-                 [:div {:key filename}
-                  (cond
-                    (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
-                                                             [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
-                    :else [component-codemirror-block app-data app-id file i tab-index])])))]]))
+     [:div#panes {:class (if iframe "out")}
+      [:div
+       (doall (for [i file-count]
+                (let [file (nth @files i)
+                      filename (.-name file)
+                      content-type (get-valid-type file)]
+                  [:div {:key filename}
+                   (cond
+                     (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
+                                                              [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
+                     :else [component-codemirror-block app-data app-id file i tab-index])])))]
+      (when iframe
+        [:iframe {:src (str "?app=" app-id)}])]]))
 
 (defn component-list-app [{:keys [state] :as app-data} app-id app]
   [:div.app
    [:div.columns
     [:div.column
-     [:div {:on-click (partial open-app! app-data app-id)}
+     [:div {:on-click (partial open-app-tab! app-data app-id)}
       (if (app :icon-url)
         [:img.app-icon {:src (app :icon-url)}]
         [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
-     [:div [:button {:on-click (partial open-app! app-data app-id) :title "Run app"} [component-icon :play]]]
+     [:div [:button {:on-click (partial open-app-tab! app-data app-id) :title "Run app"} [component-icon :play]]]
      [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :pencil]]]
      [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
      [:div [:button {:on-click (partial clone-app! app-data app (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
      [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Download app zip"} [component-icon :download]]]]
     [:div.column
      [:a.title {:href (str "?app=" app-id)
-                :on-click (partial open-app! app-data app-id)
+                :on-click (partial open-app-tab! app-data app-id)
                 :target (str "window-" app-id)}
       [:p.title (app :title) [:span {:class "link-out"} [component-icon :link-out]]]]
      [:p (app :description)]]]])
