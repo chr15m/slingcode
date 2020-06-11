@@ -13,6 +13,11 @@ body, html {
   font-weight: bold;
 }
 
+body, html, #app, #app > div {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
 #dedication {
   text-align: center;
   margin-top: 4em;
@@ -670,10 +675,17 @@ button#add-app {
 
 /*** editor ***/
 
+section#editor {
+  margin-top: 0px;
+  padding-top: 7em;
+  height: 100vh;
+}
+
 section#editor #file-menu {
   padding: 0px;
   margin-top: -3.5em;
   margin-left: 136px;
+  margin-bottom: -0.5em;
   position: relative;
 }
 
@@ -796,16 +808,27 @@ section#editor ul#files > li.active input {
   text-overflow: ellipsis;
 }
 
+section#editor {
+  display: flex;
+  flex-flow: column;
+}
+
+div#panes, div#panes > div, div#panes > div > .editor, .editor > .CodeMirror {
+  flex: 1;
+  display: flex;
+  flex-flow: column;
+  min-height: 0;
+}
+
 div.editor > div {
-  height: 100%;
 }
 
 section#editor div#panes {
-  max-width: 100%;
+  width: 100%;
 }
 
 section#editor div#panes.out > div {
-  width: 67%;
+  width: 60%;
 }
 
 section#editor div#panes > iframe {
@@ -813,7 +836,7 @@ section#editor div#panes > iframe {
   position: fixed;
   top: 0px;
   right: 0px;
-  width: 33%;
+  width: 40%;
 }
 
 section#editor .add-file-menu input {
