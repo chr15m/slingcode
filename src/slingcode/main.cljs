@@ -553,7 +553,7 @@
     (let [files (vec (or files (<p! (retrieve-files store app-id))))]
       (when (not (and ev (aget ev "state")))
         (.pushState history #js {"mode" "edit" "app-id" app-id} "Edit" (str "?edit=" app-id)))
-      (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index 0 :editors {}}))))
+      (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index (dec (count files)) :editors {}}))))
 
 (defn clone-app! [{:keys [state store history] :as app-data} app app-id files ev]
   (when ev
@@ -1005,7 +1005,7 @@
 
 (defn component-codemirror-block [{:keys [state] :as app-data} app-id f i tab-index]
   [:div.editor
-   {:style {:display (if (= i @tab-index) "block" "none")}
+   {:style {:display (if (= i @tab-index) "flex" "none")}
     :ref (partial init-cm! app-data app-id i tab-index)}])
 
 (defn dropdown-menu-state [menu-state id]
@@ -1027,7 +1027,7 @@
   (let [files (r/cursor state [:editing :files])
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
-        file-count (range (count @files))
+        file-count (reverse (range (count @files)))
         iframe (-> @state :editing :iframe)
         app-id (-> @state :editing :id)
         app-window (-> @state :windows (get app-id))]
@@ -1077,11 +1077,10 @@
                 (let [file (nth @files i)
                       filename (.-name file)
                       content-type (get-valid-type file)]
-                  [:div {:key filename}
-                   (cond
-                     (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
-                                                              [:div.file-content [:img {:src (js/window.URL.createObjectURL file)}]])
-                     :else [component-codemirror-block app-data app-id file i tab-index])])))]
+                  (cond
+                    (= (.indexOf content-type "image/") 0) (when (= i @tab-index)
+                                                             [:div.file-content {:key i} [:img {:src (js/window.URL.createObjectURL file)}]])
+                    :else (with-meta [component-codemirror-block app-data app-id file i tab-index] {:key i})))))]
       (when iframe
         [:iframe {:src (str "?app=" app-id)}])]]))
 
