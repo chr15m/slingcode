@@ -365,11 +365,12 @@
       (aset frame "src" (js/window.URL.createObjectURL index-file))
       (swap! state #(-> % (assoc-in [:editing :references] references))))))
 
-(defn update-main-window-content! [{:keys [state store] :as app-data} files app-id win]
+(defn update-main-window-content! [{:keys [state store] :as app-data} files app-id]
   (js/console.log "updating main window content")
   (let [file (if files
                (get-index-file files)
-               (make-file not-found-app "index.html" {:type "text/html"}))]
+               (make-file not-found-app "index.html" {:type "text/html"}))
+        win (-> @state :windows (get app-id))]
     (js/console.log "updating main window content (window)" win)
     (when win
       (set-main-window-content! state (-> win .-document) files file))))
@@ -409,7 +410,6 @@
       (<p! (store-files! store app-id files))
       (let [apps (<! (get-apps-data store))
             file (nth files @file-index)
-            win (-> @state :windows (get app-id))
             app-order (vec (@state :app-order))
             app-order (if (some #(= app-id %) app-order)
                         app-order
@@ -421,7 +421,7 @@
                     (assoc :app-order app-order)
                     (assoc-in [:editing :files] files)))
         (if (= (.-name file) "index.html")
-          (update-main-window-content! app-data files app-id win)
+          (update-main-window-content! app-data files app-id)
           (update-refs! app-data files app-id @file-index))))))
 
 (defn remove-file! [{:keys [state store] :as app-data} app-id file-index]
@@ -1082,7 +1082,7 @@
                                                              [:div.file-content {:key i} [:img {:src (js/window.URL.createObjectURL file)}]])
                     :else (with-meta [component-codemirror-block app-data app-id file i tab-index] {:key i})))))]
       (when iframe
-        [:iframe {:src (str "?app=" app-id)}])]]))
+        [:iframe {:src (str "?app=" app-id) :id "slingcode-embedded-iframe"}])]]))
 
 (defn component-list-app [{:keys [state] :as app-data} app-id app]
   [:div.app
@@ -1249,13 +1249,15 @@
         app-id (aget message "data" "app-id")]
     (cond (= action "reload")
           (go
-            (let [files (<p! (retrieve-files store app-id))]
+            (let [files (<p! (retrieve-files store app-id))
+                  win (.-source message)]
               (js/console.log "refreshin'"
                               app-id
                               (aget message "origin")
-                              (-> js/document .-location .-href))
-              (update-main-window-content! app-data files app-id (.-source message))
-              (swap! state update-in [:windows] assoc app-id (.-source message))))
+                              (-> js/document .-location .-href)
+                              win)
+              (swap! state update-in [:windows] assoc app-id win)
+              (update-main-window-content! app-data files app-id)))
           (= action "unload")
           (swap! state update-in [:windows] dissoc app-id))))
 
@@ -1280,7 +1282,7 @@
     (go
       (let [store (.createInstance localforage #js {:name "slingcode-apps"})
             app-data {:state state :store store :base-url base-url :history history}
-            el (js/document.getElementById "app") 
+            el (js/document.getElementById "app")
             ;_ (tap> {"CLEARED STORE" (<p! (.clear store))})
             stored-apps (<! (get-apps-data store))
             app-order (<p! (retrieve-app-order store))
