@@ -7,3 +7,5 @@ bin/bootleg-*
 src/slingcode/revision.txt
 slingcode.net
 src/default-apps.zip*
+src/default-apps/*
+!src/default-apps/*.zip 
