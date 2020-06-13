@@ -510,7 +510,7 @@
                                      (fn [& results]
                                        (apply merge-with (concat [into] results)))
                                      zipped-file-chans))
-          zipped-file-contents-sorted (map (fn [folder] [folder (get zipped-file-contents folder)]) zipped-folder-names)]
+          zipped-file-contents-sorted (map (fn [folder] [folder (reverse (get zipped-file-contents folder))]) zipped-folder-names)]
       ; we want the apps to appear top to bottom as they
       ; are in a zip file so we reverse the order
       ; otherwise the one at the top would get added first
@@ -555,7 +555,7 @@
     (let [files (vec (or files (<p! (retrieve-files store app-id))))]
       (when (not (and ev (aget ev "state")))
         (.pushState history #js {"mode" "edit" "app-id" app-id} "Edit" (str "?edit=" app-id)))
-      (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index (dec (count files)) :editors {}}))))
+      (swap! state assoc :mode :edit :editing {:id app-id :files files :tab-index 0 :editors {}}))))
 
 (defn clone-app! [{:keys [state store history] :as app-data} app app-id files ev]
   (when ev
@@ -1036,7 +1036,7 @@
   (let [files (r/cursor state [:editing :files])
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
-        file-count (reverse (range (count @files)))
+        file-count (range (count @files))
         app-id (-> @state :editing :id)
         iframe (-> @state :editing :iframe)
         app-window (-> @state :windows (get app-id))]
