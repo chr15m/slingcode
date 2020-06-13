@@ -305,6 +305,11 @@
           :tags {:scripts script-references
                  :links style-references}}]))))
 
+(defn get-run-frame-reference [state app-id]
+  (if (get-in state [:editing :iframe])
+    (-> (js/document.getElementById "slingcode-embedded-run-frame") .-contentWindow)
+    (-> state :windows (get app-id))))
+
 (defn in-string [a b]
   (>= (.indexOf (if a (.toLowerCase a) "") b) 0))
 
@@ -370,15 +375,15 @@
   (let [file (if files
                (get-index-file files)
                (make-file not-found-app "index.html" {:type "text/html"}))
-        win (-> @state :windows (get app-id))]
-    (js/console.log "updating main window content (window)" win)
-    (when win
-      (set-main-window-content! state (-> win .-document) files file))))
+        run-frame (get-run-frame-reference @state app-id)]
+    (js/console.log "updating main window content (window)" run-frame)
+    (when run-frame
+      (set-main-window-content! state (-> run-frame .-document) files file))))
 
 (defn update-refs! [{:keys [state store] :as app-data} files app-id file-index]
   (go
-    (let [win (-> @state :windows (get app-id))
-          frame (when win (-> win .-document (.getElementById "slingcode-frame")))
+    (let [run-frame (get-run-frame-reference @state app-id)
+          frame (when run-frame (-> run-frame .-document (.getElementById "slingcode-frame")))
           [index-file updated-references] (<! (update-html-references files (get-index-file files)))
           links (get-in @state [:editing :references :tags])
           ;file-blobs (get-in @state [:editing :references :file-blobs])
@@ -542,7 +547,7 @@
                (swap! state assoc :message blocked-message)))
       250)))
 
-(defn toggle-app-iframe! [{:keys [state store] :as app-data} id ev]
+(defn toggle-app-iframe! [{:keys [state store] :as app-data} ev]
   (.preventDefault ev)
   (swap! state update-in [:editing :iframe] not))
 
@@ -699,6 +704,13 @@
 (defn toggle-burger-menu! [burger-menu ev]
   (.preventDefault ev)
   (swap! burger-menu not))
+
+(defn close-run-frame! [{:keys [state] :as app-data} app-id ev]
+  (.preventDefault ev)
+  (if (get-in @state [:editing :iframe])
+    (toggle-app-iframe! app-data ev)
+    (let [win (-> @state :windows (get app-id))]
+      (when win (.close win)))))
 
 (defn remove-signaling-server! [original-settings s ev]
   (.preventDefault ev)
@@ -1028,8 +1040,8 @@
         tab-index (r/cursor state [:editing :tab-index])
         menu-state (r/cursor state [:editing :menu-state])
         file-count (reverse (range (count @files)))
-        iframe (-> @state :editing :iframe)
         app-id (-> @state :editing :id)
+        iframe (-> @state :editing :iframe)
         app-window (-> @state :windows (get app-id))]
     [:section#editor.screen
      [:ul#file-menu {:on-mouse-leave #(reset! menu-state nil)}
@@ -1047,17 +1059,22 @@
        [:ul
         [:li [:a {:href "https://slingcode.net/publish" :target "_blank"} "Publish"]]
         [:li [:a.color-warn {:href "#" :on-click (partial delete-app! app-data app-id)} "Delete"]]]]
-      [:li.topmenu.button (dropdown-menu-state menu-state :run) [component-icon :play] "Run"
-       [:ul
-        [:li {:on-click (partial open-app-tab! app-data app-id)}
-         (if 
-           (and app-window (not (aget app-window "closed")))
-           "Switch to tab"
-           "In a new tab")]
-        [:li {:on-click (partial toggle-app-iframe! app-data app-id)}
-         (if iframe
-           "Close view"
-           "Next to code")]]]]
+      (if (or iframe app-window)
+        [:li.topmenu.button
+         {:on-click (partial close-run-frame! app-data app-id)}
+         [component-icon :stop] "Stop"]
+        [:li.topmenu.button (dropdown-menu-state menu-state :run)
+         [component-icon :play] "Run"
+         [:ul
+          [:li {:on-click (partial open-app-tab! app-data app-id)}
+           (if
+             (and app-window (not (aget app-window "closed")))
+             "Switch to tab"
+             "In a new tab")]
+          [:li {:on-click (partial toggle-app-iframe! app-data)}
+           (if iframe
+             "Close view"
+             "Next to code")]]])]
      [:ul#files
       (doall (for [i file-count]
                (let [f (nth @files i)
@@ -1082,7 +1099,7 @@
                                                              [:div.file-content {:key i} [:img {:src (js/window.URL.createObjectURL file)}]])
                     :else (with-meta [component-codemirror-block app-data app-id file i tab-index] {:key i})))))]
       (when iframe
-        [:iframe {:src (str "?app=" app-id) :id "slingcode-embedded-iframe"}])]]))
+        [:iframe {:src (str "?app=" app-id) :id "slingcode-embedded-run-frame"}])]]))
 
 (defn component-list-app [{:keys [state] :as app-data} app-id app]
   [:div.app
@@ -1236,6 +1253,7 @@
   [:iframe#slingcode-frame
    {:ref (fn [el]
            ; if we weren't spawned by a slingcode editor then load our own content
+           ; this only happens for tabs/windows no embedded iframe
            (let [parent (.-opener js/window)]
              (if parent
                (.postMessage parent #js {:action "reload" :app-id app-id} "*")
