@@ -487,10 +487,15 @@ div.app {
   padding: 1.5em 0px;
 }
 
-div.app img.app-icon {
+div.app .app-icon {
+  cursor: pointer;
+  float: left;
+  margin-right: 1em !important;
+}
+
+div.app .app-icon img {
   width: 64px;
   height: 64px;
-  cursor: pointer;
 }
 
 div.app button svg {
@@ -543,16 +548,16 @@ div.app .app-actions-menu > div {
 
 @media (max-width: 600px) {
   #apps .columns {
-    flex-direction: column;
+    flex-direction: column-reverse;
   }
 
-  #apps .column > * {
+  #apps .column.action-buttons {
+    margin-top: 1em;
+  }
+
+  #apps .column > div {
     display: inline-block;
     margin-right: 0.25em;
-  }
-
-  #apps .column > *:first-child {
-    display: block;
   }
 }
 
@@ -573,6 +578,11 @@ div.app .app-actions-menu > div {
   padding-top: 0px;
   margin-top: 0px;
   margin-bottom: 0.5em;
+}
+
+#apps .column > p {
+  display: block;
+  clear: both;
 }
 
 #apps .actions {

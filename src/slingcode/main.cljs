@@ -1104,17 +1104,17 @@
 (defn component-list-app [{:keys [state] :as app-data} app-id app]
   [:div.app
    [:div.columns
-    [:div.column
-     [:div {:on-click (partial open-app-tab! app-data app-id)}
-      (if (app :icon-url)
-        [:img.app-icon {:src (app :icon-url)}]
-        [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
+    [:div.column.action-buttons
      [:div [:button {:on-click (partial open-app-tab! app-data app-id) :title "Run app"} [component-icon :play]]]
      [:div [:button {:on-click (partial edit-app! app-data app-id nil) :title "Edit app code"} [component-icon :pencil]]]
      [:div [:button {:on-click (partial send-app! app-data app-id (app :files) (app :title)) :title "Send app"} [component-icon :paper-plane]]]
      [:div [:button {:on-click (partial clone-app! app-data app (str (random-uuid)) (app :files)) :title "Clone app"} [component-icon :clone]]]
      [:div [:button {:on-click (partial download-zip! app-data app-id (app :title)) :title "Download app zip"} [component-icon :download]]]]
     [:div.column
+     [:span.app-icon {:on-click (partial open-app-tab! app-data app-id)}
+      (if (app :icon-url)
+        [:img {:src (app :icon-url)}]
+        [:svg {:width 64 :height 64} [:circle {:cx 32 :cy 32 :r 32 :fill "#555"}]])]
      [:a.title {:href (str "?app=" app-id)
                 :on-click (partial open-app-tab! app-data app-id)
                 :target (str "window-" app-id)}
@@ -1158,7 +1158,7 @@
          [:li [:button.success {:on-click (partial check-for-new-version! state)} "Check for update"]]
          [:li [:button.warning {:on-click (partial reset-slingcode! store)} "Reset Slingcode"]]]]
        [:div.input-group
-        [:p "WebTorrent signaling servers"]
+        [:p "WebTorrent signaling servers (for send and receive)."]
         [:ul#signaling-servers
          (for [s (range (count signaling-servers))]
            [:li {:key s}
