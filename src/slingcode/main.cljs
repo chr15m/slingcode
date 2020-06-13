@@ -447,10 +447,7 @@
                 :value (or src "")
                 :theme "erlang-dark"
                 :autoCloseBrackets true
-                :mode "text/plain"}
-        config (if (= content-type "text/html")
-                 (assoc config :mode "htmlmixed")
-                 config)
+                :mode content-type}
         cm (CodeMirror
              dom-node
              (clj->js config))]
