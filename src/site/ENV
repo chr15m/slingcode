@@ -1,0 +1,3 @@
+NGINX_SERVER_NAME=slingcode.net
+NGINX_INCLUDE_FILE=nginx.conf
+NGINX_HTTPS_ONLY=1

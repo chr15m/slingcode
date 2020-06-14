@@ -3,6 +3,7 @@ BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 
 SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/logo.svg public/logo.png
 SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
+DISTFILES=index.html publish.html slingcode.html license.txt revision.txt ENV Procfile nginx.conf
 DEFAULTAPPS=hello-world chromium-dinosaur-game preact-demo mithril-todomvc leaflet-map jquery-ui-demo party-like-its-98 text-log 8bit-interface
 # DEBUGFLAG=$(if $(DEBUG), --debug,)
 DEBUGFLAG=--debug
@@ -11,7 +12,7 @@ DEBUGFLAG=--debug
 BOOTLEGVERSION=0.1.7
 BOOTLEG=./bin/bootleg-$(BOOTLEGVERSION)
 
-slingcode.net: slingcode.net/index.html slingcode.net/publish.html slingcode.net/slingcode.html slingcode.net/license.txt slingcode.net/revision.txt
+slingcode.net: $(foreach D, $(DISTFILES), slingcode.net/$(D))
 
 slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/style.min.css src/slingcode/revision.txt build/index.html
 	$(BOOTLEG) src/slingcode-bootleg.clj > build/slingcode-compiled.html
@@ -25,6 +26,15 @@ slingcode.net/publish.html: $(BOOTLEG) src/slingcode-site-bootleg.clj publish.md
 
 slingcode.net/public/%: public/%
 	@mkdir -p `dirname $@`
+	cp $< $@
+
+slingcode.net/ENV: src/site/ENV
+	cp $< $@
+
+slingcode.net/Procfile: src/site/Procfile
+	cp $< $@
+
+slingcode.net/nginx.conf: src/site/nginx.conf
 	cp $< $@
 
 slingcode.net/license.txt: license.txt
