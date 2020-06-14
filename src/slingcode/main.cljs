@@ -1155,7 +1155,7 @@
          [:li [:button.success {:on-click (partial check-for-new-version! state)} "Check for update"]]
          [:li [:button.warning {:on-click (partial reset-slingcode! store)} "Reset Slingcode"]]]]
        [:div.input-group
-        [:p "WebTorrent signaling servers (for send and receive)."]
+        [:p "WebTorrent signaling servers"]
         [:ul#signaling-servers
          (for [s (range (count signaling-servers))]
            [:li {:key s}
@@ -1165,9 +1165,10 @@
          [:li [:button.success
                {:on-click #(swap! original-settings update-in ["signaling-servers"] conj "wss://")} "+"]]]
         [:p
-         "(Learn how to " [:a {:href "https://github.com/webtorrent/bittorrent-tracker/"
+         "These are used for the p2p send and receive functionality. "
+         "Learn how to " [:a {:href "https://github.com/webtorrent/bittorrent-tracker/"
                                :target "_blank"} "run your own signaling server"]
-         ".)"]]
+         "."]]
        [:div.input-group
         [:button {:on-click (partial save-settings! app-data original-settings)} "Ok"]
         [:button {:on-click (partial toggle-screen! state :settings)} "Cancel"]]])))
