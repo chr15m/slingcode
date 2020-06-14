@@ -504,17 +504,14 @@
 (defn zip-extract [zip]
   (go
     (let [zipped-files (.filter zip zip-parse-extract-valid-dir-and-file)
-          zipped-folder-names (set (map #(first (zip-parse-extract-valid-dir-and-file (.-name %))) zipped-files))
+          zipped-folder-names (reverse (distinct (map #(first (zip-parse-extract-valid-dir-and-file (.-name %))) zipped-files)))
           zipped-file-chans (map zip-parse-extract-file zipped-files)
           zipped-file-contents (<! (async/map
                                      (fn [& results]
                                        (apply merge-with (concat [into] results)))
                                      zipped-file-chans))
-          zipped-file-contents-sorted (map (fn [folder] [folder (reverse (get zipped-file-contents folder))]) zipped-folder-names)]
-      ; we want the apps to appear top to bottom as they
-      ; are in a zip file so we reverse the order
-      ; otherwise the one at the top would get added first
-      (reverse zipped-file-contents-sorted))))
+          zipped-file-contents-sorted (map (fn [folder] [folder (get zipped-file-contents folder)]) zipped-folder-names)]
+      zipped-file-contents-sorted)))
 
 (defn zip-parse-base64 [base64-blob]
   (go

@@ -61,8 +61,7 @@ src/default-apps.zip.b64: src/default-apps.zip
 
 src/default-apps.zip: $(foreach Z, $(DEFAULTAPPS), src/default-apps/$(Z).zip )
 	rm -f $@
-	cd src/default-apps && for z in $(DEFAULTAPPS); do unzip -o $${z}.zip; done
-	cd src/default-apps && zip -r ../default-apps.zip $(DEFAULTAPPS) -x \*.zip
+	cd src/default-apps && zipmerge ../default-apps.zip $(foreach Z, $(DEFAULTAPPS), $(Z).zip )
 
 slingcode.net/revision.txt: src/slingcode/revision.txt
 	cp $< $@
