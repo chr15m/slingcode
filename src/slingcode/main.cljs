@@ -1247,11 +1247,16 @@
 (defn component-child-container [{:keys [state query] :as app-data} files file app-id]
   [:iframe#slingcode-frame
    {:ref (fn [el]
-           ; if we weren't spawned by a slingcode editor then load our own content
-           ; this only happens for tabs/windows no embedded iframe
-           (let [parent (.-opener js/window)]
-             (if parent
-               (.postMessage parent #js {:action "reload" :app-id app-id} "*")
+           ; if we were spawned by a slingcode editor then ask the editor to reload us
+           ; otherwise set our own content
+           (let [parent-window (.-opener js/window)
+                 parent-iframe (.-parent js/parent)]
+             (cond
+               parent-window
+               (.postMessage parent-window #js {:action "reload" :app-id app-id :sender-type "window"} "*")
+               parent-iframe
+               (.postMessage parent-iframe #js {:action "reload" :app-id app-id} "*")
+               :else
                (set-main-window-content! state js/document files file))))}])
 
 ; ***** browser message handlers ***** ;
@@ -1259,7 +1264,8 @@
 (defn receive-message! [{:keys [state store] :as app-data} message]
   (js/console.log "received message" message)
   (let [action (aget message "data" "action")
-        app-id (aget message "data" "app-id")]
+        app-id (aget message "data" "app-id")
+        sender-type (aget message "sender-type")]
     (cond (= action "reload")
           (go
             (let [files (<p! (retrieve-files store app-id))
@@ -1269,7 +1275,8 @@
                               (aget message "origin")
                               (-> js/document .-location .-href)
                               win)
-              (swap! state update-in [:windows] assoc app-id win)
+              (when (= sender-type "window")
+                (swap! state update-in [:windows] assoc app-id win))
               (update-main-window-content! app-data files app-id)))
           (= action "unload")
           (swap! state update-in [:windows] dissoc app-id))))
