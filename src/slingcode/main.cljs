@@ -1069,14 +1069,14 @@
            (if iframe
              "Close view"
              "Next to code")]]])]
-     [:ul#files
+     [:ul#files {:class (if iframe "out")}
       (doall (for [i file-count]
                (let [f (nth @files i)
                      editor (get-in @state [:editing :editors i])]
                  (with-meta
                    [component-filename editor files i tab-index]
                    {:key (.-name f)}))))
-      (when (< (count @files) 7)
+      (when (< (count @files) 9)
         [:li.add-file-menu.topmenu (merge {:on-mouse-leave #(reset! menu-state nil)}
                                           (dropdown-menu-state menu-state :add-file)) "+"
          [:ul

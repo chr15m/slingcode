@@ -788,7 +788,27 @@ section#editor ul#files {
   list-style-type: none;
   border-bottom: 2px solid #999;
   white-space: nowrap;
-  /*overflow-x: auto;*/
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-color: #666 #999;
+}
+
+section#editor ul#files.out {
+  width: 60%;
+}
+
+section#editor ul#files::-webkit-scrollbar {
+  width: 11px;
+}
+
+section#editor ul#files::-webkit-scrollbar-track {
+  background: #999;
+}
+
+section#editor ul#files::-webkit-scrollbar-thumb {
+  background-color: #666;
+  border-radius: 0px;
+  border: none;
 }
 
 section#editor ul#files > li {
@@ -837,6 +857,10 @@ section#editor div#panes {
   width: 100%;
 }
 
+section#editor div#panes > div {
+  width: 100%;
+}
+
 section#editor div#panes.out > div {
   width: 60%;
 }
@@ -867,7 +891,7 @@ section#editor .file-content {
   text-align: center;
   justify-content: center;
   align-items: center;
-  width: 100%;
+  width: inherit;
 }
 
 section#editor .file-content > img {
