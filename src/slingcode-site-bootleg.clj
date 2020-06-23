@@ -6,6 +6,7 @@
       static (enlive/at static [:section#about] (enlive/content (markdown (str "../" (last *command-line-args*)) :hickory-seq))) 
       static (enlive/at static [:p#gh-logo] (enlive/substitute nil))
       static (enlive/at static [:section#about] (enlive/prepend (convert-to [:img {:src "public/img/computers-in-our-lives.jpg"}] :hickory-seq))) 
+      static (enlive/at static [:p#youtube] (enlive/substitute (html "slingcode-embed.html" :hickory-seq))) 
       ;static (enlive/at static [:section#about] (enlive/prepend (convert-to [:div [:p.title "Slingcode personal computing platform."]] :hickory-seq))) 
       ]
   (enlive/at template [:body] (enlive/content static)))
