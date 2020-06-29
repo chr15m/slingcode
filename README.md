@@ -65,6 +65,10 @@ Slingcode is built with [ClojureScript](https://clojurescript.org/). To get star
 
 -- [Wikipedia, Ikutaro Kakehashi](https://en.wikipedia.org/wiki/Ikutaro_Kakehashi)
 
+> ...alternative to the MVP: Simple, Lovable and Complete (SLC)... A skateboard is a SLC product. It’s faster than walking, it’s simple, many people love it, and it’s a complete product that doesn’t need additions to be fun or practical.
+
+-- Jason Cohen, [Make it SLC instead](https://blog.asmartbear.com/slc.html)
+
 ### Copyright
 
 Slingcode is Copyright Chris McCormick, 2020.
