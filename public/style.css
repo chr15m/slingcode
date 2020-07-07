@@ -315,8 +315,9 @@ section.website blockquote + p {
   font-size: 1em;
   border-radius: 5px;
   color: #31D584;
-  max-width: 50%;
+  max-width: 800px;
   margin: auto;
+  width: 90%;
 }
 
 .tinysignup .spinner {
