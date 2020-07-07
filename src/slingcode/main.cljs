@@ -2,7 +2,6 @@
   (:require 
     [cljs.core.async :refer (chan put! close! <! go timeout) :as async]
     [cljs.core.async.interop :refer-macros [<p!]]
-    [alandipert.storage-atom :refer [local-storage]]
     [reagent.core :as r]
     [reagent.dom :as rdom]
     [shadow.resource :as rc]
