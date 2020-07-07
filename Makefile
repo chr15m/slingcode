@@ -3,7 +3,7 @@ BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 
 SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/img/youtube.png public/logo.svg public/logo.png
 SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
-DISTFILES=index.html publish.html slingcode.html license.txt revision.txt ENV Procfile nginx.conf
+DISTFILES=index.html publish.html slingcode.html license.txt revision.txt ENV Procfile Makefile nginx.conf
 DEFAULTAPPS=hello-world chromium-dinosaur-game preact-demo mithril-todomvc savings-calculator widgets-order-form leaflet-map banana-dungeon-game jquery-ui-demo party-like-its-98 text-log 8bit-interface
 # DEBUGFLAG=$(if $(DEBUG), --debug,)
 DEBUGFLAG=--debug
@@ -32,6 +32,9 @@ slingcode.net/ENV: src/site/ENV
 	cp $< $@
 
 slingcode.net/Procfile: src/site/Procfile
+	cp $< $@
+
+slingcode.net/Makefile: src/site/Makefile
 	cp $< $@
 
 slingcode.net/nginx.conf: src/site/nginx.conf

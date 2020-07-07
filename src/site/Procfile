@@ -1,1 +1,2 @@
 static: /
+analytics: make app-analytics.html analytics.html; sleep 3600
