@@ -69,6 +69,31 @@ Slingcode is built with [ClojureScript](https://clojurescript.org/). To get star
 
 -- Jason Cohen, [Make it SLC instead](https://blog.asmartbear.com/slc.html)
 
+### Credits
+
+Thanks to [Crispin](https://twitter.com/epic_castle) and Joel for testing and giving brilliant feedback on early versions.
+
+Some technology and libraries that Slingcode uses:
+
+* ClojureScript and Clojure.
+* CodeMirror for the web based code editor component.
+* React + Reagent for the rendering of the user interface.
+* Jszip for wrangling zip files.
+* WebTorrent for peer-to-peer file transfer.
+* Niceware for turning hex into phrases.
+* bugout for peer-to-peer communication (I wrote this library).
+* Tweetnacl.js for cryptography.
+* bs58 for managing base 58 addresses.
+* localforage for browser side storage.
+* zxing for QR code scanning.
+* mime-types for managing content types.
+* url-search-params for managing query strings.
+* shadow-cljs for making the compilation phase simple.
+* npm for managing dependencies.
+* fontawesome for icons.
+
+Thanks!
+
 ### Copyright
 
 Slingcode is Copyright Chris McCormick, 2020.

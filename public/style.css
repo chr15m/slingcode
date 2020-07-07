@@ -277,6 +277,12 @@ section.website blockquote + p {
   margin-bottom: 4em;
 }
 
+#news-signup {
+  display: block;
+  margin-top: 7em;
+  margin-bottom: 7em;
+}
+
 .tinysignup {
   text-align: center;
   margin-top: 3em;
