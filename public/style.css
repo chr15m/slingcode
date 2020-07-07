@@ -309,6 +309,35 @@ section.website blockquote + p {
   margin-top: 1em;
 }
 
+.tinysignup .message {
+  border: 2px solid #31D584;
+  padding: 1em 1.5em;
+  font-size: 1em;
+  border-radius: 5px;
+  color: #31D584;
+  max-width: 50%;
+  margin: auto;
+}
+
+.tinysignup .spinner {
+  width: 40px;
+  height: 40px;
+  background-color: #31D584;
+  border-radius: 5px;
+  margin: 40px auto;
+  animation: tinysignup-rotateplane 1.2s infinite ease-in-out;
+}
+
+@keyframes tinysignup-rotateplane {
+  0% { 
+    transform: perspective(120px) rotateX(0deg) rotateY(0deg);
+  } 50% { 
+    transform: perspective(120px) rotateX(-180.1deg) rotateY(0deg);
+  } 100% { 
+    transform: perspective(120px) rotateX(-180deg) rotateY(-179.9deg);
+  }
+}
+
 /*** apps ***/
 
 #search svg {
