@@ -1191,6 +1191,7 @@
          [:ul#burger-menu
           [:li [:a {:href "#" :on-click (partial toggle-screen! state :settings)} "Settings"]]
           [:li [:a {:href "#" :on-click (partial toggle-screen! state :about)} "About"]]
+          [:li [:a {:href "https://slingcode.net/screencasts.html" :target "_blank"} "Screencasts"]]
           [:li [:a {:href "https://slingcode.net/#news-signup" :target "_blank"} "Newsletter"]]])
        [:svg#lines {:width "100%" :height "60px"}
         [:path {:fill-opacity 0 :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round" :d "m 0,52 100,0 50,-50 5000,0"}] 

@@ -3,7 +3,7 @@ BUILD=build/js/main.js $(foreach S, $(STATIC), build/$(S))
 
 SITEFILES=public/style.css public/img/computers-in-our-lives.jpg public/img/appleIIe.jpg public/img/youtube.png public/logo.svg public/logo.png
 SITEFILES_DEST=$(foreach S, $(SITEFILES), slingcode.net/$(S))
-DISTFILES=index.html publish.html slingcode.html license.txt revision.txt ENV Procfile Makefile nginx.conf
+DISTFILES=index.html publish.html screencasts.html slingcode.html license.txt revision.txt ENV Procfile Makefile nginx.conf
 DEFAULTAPPS=hello-world chromium-dinosaur-game preact-demo mithril-todomvc savings-calculator widgets-order-form leaflet-map banana-dungeon-game jquery-ui-demo party-like-its-98 text-log 8bit-interface
 # DEBUGFLAG=$(if $(DEBUG), --debug,)
 DEBUGFLAG=--debug
@@ -21,8 +21,11 @@ slingcode.net/slingcode.html: $(BOOTLEG) $(BUILD) build/logo-b64-href.txt build/
 slingcode.net/index.html: $(BOOTLEG) src/slingcode-site-bootleg.clj README.md src/slingcode-static.html build/index.html $(SITEFILES_DEST)
 	$(BOOTLEG) src/slingcode-site-bootleg.clj README.md > $@
 
-slingcode.net/publish.html: $(BOOTLEG) src/slingcode-site-bootleg.clj publish.md src/slingcode-static.html build/index.html $(SITEFILES_DEST)
-	$(BOOTLEG) src/slingcode-site-bootleg.clj publish.md > $@
+slingcode.net/publish.html: $(BOOTLEG) src/slingcode-site-bootleg.clj pages/publish.md src/slingcode-static.html build/index.html $(SITEFILES_DEST)
+	$(BOOTLEG) src/slingcode-site-bootleg.clj pages/publish.md > $@
+
+slingcode.net/screencasts.html: $(BOOTLEG) src/slingcode-site-bootleg.clj pages/screencasts.md src/slingcode-static.html build/index.html $(SITEFILES_DEST)
+	$(BOOTLEG) src/slingcode-site-bootleg.clj pages/screencasts.md > $@
 
 slingcode.net/public/%: public/%
 	@mkdir -p `dirname $@`

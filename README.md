@@ -18,6 +18,8 @@ Or right-click on [`slingcode.html`](https://slingcode.net/slingcode.html) and "
 
 <p align="center" id="youtube"><a href="https://www.youtube.com/watch?v=0tONEHy-P7M" target="_blank"><img src="public/img/youtube.png" alt="Slingcode video"></a></p>
 
+You can find more [screencasts here](https://slingcode.net/screencasts.html).
+
 ### About
 
 There is no server component for Slingcode. The apps are stored in the web browser's local storage, completely offline. You can move apps between browsers by using the peer-to-peer send and receive feature. You can also export an app as a zip file and import it into another Slingcode instance, or upload your app onto regular web hosting to deploy it online.
