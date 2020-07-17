@@ -16,7 +16,7 @@ Or right-click on [`slingcode.html`](https://slingcode.net/slingcode.html) and "
 
 ### Video
 
-<p align="center" id="youtube"><a href="https://www.youtube.com/watch?v=0tONEHy-P7M" target="_blank"><img src="public/img/youtube.png" alt="Slingcode video"></a></p>
+<p align="center" id="youtube"><a href="https://www.youtube.com/watch?v=0tONEHy-P7M&list=PL5dyN9XHelZO9_ZGTVHPInJH2_32bLQLd&index=1" target="_blank"><img src="public/img/youtube.png" alt="Slingcode video"></a></p>
 
 You can find more [screencasts here](https://slingcode.net/screencasts.html).
 
