@@ -31,3 +31,11 @@ In this screencast I'll show you how to live-code SVG motion graphics from scrat
 Vue.js is a front end framework which is perfect for building "single page" web applications. In this video I'll show you how to get up and running with Vue.js in the Slingcode online code editor. You don't need to install anything and you don't need to use the command line to create your first Vue.js app using Slingcode.
 
 ---
+
+### Make apps with Hyperapp
+
+<div class="screencast"><iframe class="video" src="https://www.youtube.com/embed/9zIOnl6N45s?list=PL5dyN9XHelZO9_ZGTVHPInJH2_32bLQLd" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+
+Hyperapp is a minimal user interface library for make web applications. In this screencast I show you how to get started making apps with Hyperapp in the Slingcode editor.
+
+---
