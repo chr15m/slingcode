@@ -719,6 +719,7 @@ button#add-app {
   padding: 0.25em 0.75em;
   border-radius: 5px;
   margin: 0.25em;
+  cursor: pointer;
 }
 
 #add-menu ul li a {

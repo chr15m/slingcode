@@ -1277,17 +1277,17 @@
             (when (@state :add-menu)
               [:div#add-menu {:on-mouse-leave (partial toggle-add-menu! state)}
                [:ul
-                [:li [:a {:href "#"
-                          :on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))}
-                      "New app"]]
+                [:li {:on-click (partial edit-app! app-data (str (random-uuid)) (make-boilerplate-files))}
+                 [:a {:href "#"}
+                  "New app"]]
                 [:li [:input {:type "file"
                               :name "upload-zip"
                               :accept "application/zip"
                               :on-change (partial initiate-zip-upload! app-data)}]
                  [:label "Upload zip"]]
-                [:li [:a {:href "#"
-                          :on-click (fn [ev] (.preventDefault ev) (swap! state assoc :mode :receive))}
-                      "Receive app"]]]])
+                [:li {:on-click (fn [ev] (.preventDefault ev) (swap! state assoc :mode :receive))}
+                 [:a {:href "#"}
+                  "Receive app"]]]])
 
             [:button#add-app {:on-click (partial toggle-add-menu! state)} (if (@state :add-menu) "x" "+")]])]))
 
