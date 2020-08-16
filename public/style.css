@@ -965,6 +965,10 @@ section#editor .file-content > div {
   background: rgba(255,255,255,0.1) !important;
 }
 
+.CodeMirror-dialog-top {
+  background-color: #232a25;
+}
+
 .color-warn {
   color: #C64438 !important;
 }

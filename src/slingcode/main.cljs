@@ -14,6 +14,10 @@
     ["codemirror/mode/xml/xml" :as xml]
     ["codemirror/mode/css/css" :as css]
     ["codemirror/mode/javascript/javascript" :as javascript]
+    ["codemirror/addon/search/search" :as cm-search]
+    ["codemirror/addon/search/searchcursor" :as cm-search-cursor]
+    ["codemirror/addon/search/jump-to-line" :as cm-search-jump-to-line]
+    ["codemirror/addon/dialog/dialog" :as cm-dialog]
     ["@ungap/url-search-params" :as URLSearchParams]
     ["bugout" :as Bugout]
     ["tweetnacl" :as nacl]
@@ -24,6 +28,7 @@
     ["./zxingwrap" :as zx]))
 
 (js/console.log "CodeMirror includes:" htmlmixed xml css javascript)
+(js/console.log cm-search cm-search-cursor cm-search-jump-to-line cm-dialog)
 
 (tap> "Slingcode start.")
 
