@@ -689,6 +689,35 @@
     (when file
       (add-file! app-data file))))
 
+(defn handle-paste! [{:keys [state store] :as app-data} ev]
+  ;(js/console.log "handle-paste!")
+  (let [clipboard (or (.-clipboardData ev) (.-clipboardData js/window))
+        ;pasted-text (.getData clipboard "Text") ; if data coming in is text
+        pasted-files (aget clipboard "files")
+        pasted-file (aget pasted-files 0)
+        pasted-file-type (when pasted-file (aget pasted-file "type"))
+        pasted-file-name (when pasted-file (aget pasted-file "name"))
+        files (r/cursor state [:editing :files])
+        tab-index (r/cursor state [:editing :tab-index])
+        current-file (nth @files @tab-index)
+        current-file-type (aget current-file "type")
+        app-id (-> @state :editing :id)
+        ; retain filename if types match
+        file-name (if (= current-file-type pasted-file-type)
+                    (aget current-file "name")
+                    (ensure-unique-filename (-> @state :editing :files) pasted-file-name))]
+    (when (and (> @tab-index 0) pasted-file)
+      (when (js/confirm (str "Pasting a "
+                             (-> pasted-file .-type (.split "/") .pop)
+                             ".\n"
+                             "Replace the current file?"))
+        (swap! files (fn [existing-files]
+                       (map-indexed (fn [i f]
+                                      (if (= i @tab-index)
+                                        (make-file pasted-file file-name (clj->js {:type pasted-file-type}))
+                                        f)) existing-files)))
+        (save-handler! app-data app-id tab-index nil)))))
+
 (defn reset-slingcode! [store ev]
   (.preventDefault ev)
   (when (js/confirm
@@ -1197,6 +1226,7 @@
         app-order (@state :app-order)
         mode (@state :mode)]
     [:div {:tab-index 0
+           :on-paste (partial handle-paste! app-data)
            :on-key-down (partial intercept-browser-save! app-data mode)}
      [:section#header
       [:div#logo
