@@ -578,6 +578,16 @@
   (let [cm (get-in @state [:editing :editors @tab-index])]
     (save-handler! app-data app-id tab-index cm)))
 
+(defn intercept-browser-save! [{:keys [state] :as app-data} mode ev]
+  (let [app-id (get-in @state [:editing :id])
+        tab-index (r/cursor state [:editing :tab-index])
+        S (= (.-keyCode ev) 83)
+        ctrl (if (-> js/navigator .-platform (.match "Mac")) (.-metaKey ev) (.-ctrlKey ev))
+        target (.-target ev)
+        tag (-> target .-tagName .toLowerCase)]
+    (when (and ctrl S app-id (= mode :edit) (not= tag "textarea"))
+      (save-file! app-data tab-index app-id ev))))
+
 (defn delete-app! [{:keys [state store] :as app-data} id ev]
   (.preventDefault ev)
   (when (js/confirm "Are you sure you want to delete this app?")
@@ -1186,7 +1196,8 @@
         burger-menu (r/cursor state [:burger-menu])
         app-order (@state :app-order)
         mode (@state :mode)]
-    [:div
+    [:div {:tab-index 0
+           :on-key-down (partial intercept-browser-save! app-data mode)}
      [:section#header
       [:div#logo
        [:img {:src (str "data:image/svg+xml;base64," (js/btoa logo))}]
