@@ -970,6 +970,11 @@ section#editor .file-content > div {
   background-color: #232a25;
 }
 
+input.CodeMirror-search-field {
+  font-family: "Courier New", "Courier", "Courier 10 Pitch", monospace;
+  font-size: 18px;
+}
+
 .color-warn {
   color: #C64438 !important;
 }
