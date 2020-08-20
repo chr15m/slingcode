@@ -56,7 +56,7 @@ build/js/main.js: $(shell find src) node_modules shadow-cljs.edn src/default-app
 	npx shadow-cljs release app $(DEBUGFLAG)
 
 build/style.css: public/*.css
-	cat $< > $@
+	cat public/codemirror.css public/erlang-dark.css public/dialog.css public/style.css > $@
 
 build/%: public/%
 	@mkdir -p `dirname $@`
@@ -105,4 +105,4 @@ repl:
 
 clean:
 	rm -rf build/*
-	lein clean
+
