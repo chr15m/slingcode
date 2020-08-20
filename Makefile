@@ -56,7 +56,7 @@ build/js/main.js: $(shell find src) node_modules shadow-cljs.edn src/default-app
 	npx shadow-cljs release app $(DEBUGFLAG)
 
 build/style.css: public/*.css
-	cat public/codemirror.css public/erlang-dark.css public/style.css > $@
+	cat $< > $@
 
 build/%: public/%
 	@mkdir -p `dirname $@`
