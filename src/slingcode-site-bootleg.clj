@@ -1,6 +1,7 @@
 (let [template (html "../build/index.html")
       template (enlive/at template [:head] (enlive/append (html "slingcode-social.html" :hickory-seq))) 
       template (enlive/at template [:link] (fn [t] (update-in t [:attrs :href] (fn [a] (str "public/" a)))))
+      template (enlive/at template [:link.rm] nil)
       template (enlive/at template [:script] (enlive/substitute nil))
       static (html "slingcode-static.html")
       static (enlive/at static [:section#about] (enlive/content (markdown (str "../" (last *command-line-args*)) :hickory-seq))) 
